@@ -23,7 +23,7 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Flutter/Dart/Pub related
+# Flutter/Dart/Pub related (Client)
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+client/build/
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +44,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Python (API)
+api/__pycache__/
+api/*.py[cod]
+api/*$py.class
+api/venv/
+api/env/
+api/ENV/
+api/.env
+api/*.egg-info/
+api/dist/
+api/build/
+
+# Testing
+api/.pytest_cache/
+api/.coverage
+api/htmlcov/
