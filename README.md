@@ -1,12 +1,12 @@
-# GearMate# gear_mate
+# GearMate
 
 
 
-A full-stack reminder application with Flutter frontend and FastAPI backend.A new Flutter project.
+A full-stack reminder application with Flutter frontend and FastAPI backend.
 
 
 
-## Project Structure## Getting Started
+## Project Structure
 
 
 
@@ -83,22 +83,3 @@ flutter run
 
 - **Backend README**: See `api/README.md` for detailed API documentation
 - **Frontend README**: See `client/README.md` for Flutter development guide
-
-## Features
-
-- Cross-platform Flutter application (iOS, Android, Web, Desktop)
-- RESTful API with FastAPI
-- Modern, responsive UI
-- Fast development with hot reload
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is private and not licensed for public use.
