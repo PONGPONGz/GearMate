@@ -99,8 +99,6 @@ class Inspection(InspectionBase):
 class MaintenanceScheduleBase(BaseModel):
     gear_id: int
     scheduled_date: Optional[date] = None
-    frequency: Optional[str] = None
-    shared_across_department: Optional[bool] = False
 
 
 class MaintenanceScheduleCreate(MaintenanceScheduleBase):

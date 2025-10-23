@@ -42,7 +42,7 @@ class Firefighter(Base):
     station = relationship("Station", back_populates="firefighters")
     department = relationship("Department", back_populates="firefighters")
     inspections = relationship("Inspection", back_populates="inspector")
-    damage_reports = relationship("DamageReport", back_populates="reporter")
+    damageReports = relationship("DamageReport", back_populates="reporter")
 
 
 class Gear(Base):
@@ -59,9 +59,9 @@ class Gear(Base):
 
     station = relationship("Station", back_populates="gears")
     inspections = relationship("Inspection", back_populates="gear")
-    maintenance_schedules = relationship("MaintenanceSchedule", back_populates="gear")
-    maintenance_reminders = relationship("MaintenanceReminder", back_populates="gear")
-    damage_reports = relationship("DamageReport", back_populates="gear")
+    maintenanceSchedules = relationship("MaintenanceSchedule", back_populates="gear")
+    maintenanceReminders = relationship("MaintenanceReminder", back_populates="gear")
+    damageReports = relationship("DamageReport", back_populates="gear")
 
 
 class Inspection(Base):
@@ -69,7 +69,7 @@ class Inspection(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gear_id = Column(Integer, ForeignKey("gear.id"))
-    date = Column(Date)
+    inspection_date = Column(Date)
     inspector_id = Column(Integer, ForeignKey("firefighter.id"))
     inspection_type = Column(String(100))
     condition_notes = Column(Text)
@@ -80,19 +80,17 @@ class Inspection(Base):
 
 
 class MaintenanceSchedule(Base):
-    __tablename__ = "maintenance_schedule"
+    __tablename__ = "maintenanceSchedule"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gear_id = Column(Integer, ForeignKey("gear.id"))
     scheduled_date = Column(Date)
-    frequency = Column(String(50))
-    shared_across_department = Column(Boolean, default=False)
 
-    gear = relationship("Gear", back_populates="maintenance_schedules")
+    gear = relationship("Gear", back_populates="maintenanceSchedules")
 
 
 class MaintenanceReminder(Base):
-    __tablename__ = "maintenance_reminder"
+    __tablename__ = "maintenanceReminder"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gear_id = Column(Integer, ForeignKey("gear.id"))
@@ -101,11 +99,11 @@ class MaintenanceReminder(Base):
     message = Column(String(255))
     sent = Column(Boolean, default=False)
 
-    gear = relationship("Gear", back_populates="maintenance_reminders")
+    gear = relationship("Gear", back_populates="maintenanceReminders")
 
 
 class DamageReport(Base):
-    __tablename__ = "damage_report"
+    __tablename__ = "damageReport"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gear_id = Column(Integer, ForeignKey("gear.id"))
@@ -115,5 +113,5 @@ class DamageReport(Base):
     photo_url = Column(String(255))
     status = Column(String(50))
 
-    gear = relationship("Gear", back_populates="damage_reports")
-    reporter = relationship("Firefighter", back_populates="damage_reports")
+    gear = relationship("Gear", back_populates="damageReports")
+    reporter = relationship("Firefighter", back_populates="damageReports")
