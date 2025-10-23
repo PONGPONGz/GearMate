@@ -47,7 +47,7 @@ CREATE TABLE Gear (
 CREATE TABLE Inspection (
     id INT AUTO_INCREMENT PRIMARY KEY,
     gear_id INT,
-    date DATE,
+    inspection_date DATE,
     inspector_id INT,
     inspection_type VARCHAR(100),
     condition_notes TEXT,
@@ -61,8 +61,6 @@ CREATE TABLE MaintenanceSchedule (
     id INT AUTO_INCREMENT PRIMARY KEY,
     gear_id INT,
     scheduled_date DATE,
-    frequency VARCHAR(50),
-    shared_across_department BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (gear_id) REFERENCES Gear(id)
 );
 
@@ -120,7 +118,7 @@ VALUES
 -- Firefighter
 INSERT INTO Firefighter (name, ranks, email, phone, station_id, department_id)
 VALUES
-('Mark Johnson', 'Firefighter', 'Mark.jonson@gmail.com', '0800000000', 1, 1),
+('Mark Johnson', 'Firefighter', 'Mark.johnson@gmail.com', '0800000000', 1, 1),
 ('Ton Danai', 'Technician', 'Ton.danai@gmail.com', '0899999999', 1, 1),
 ('Minnie Aleenta', 'Firefighter', 'Minnie.aleenta@gmail.com', '0888888888', 2, 2),
 ('Sang Nuntaphop', 'Firefighter', 'Sang.nuntaphop@gmail.com', '0888888888', 2, 2),
@@ -149,7 +147,7 @@ VALUES
 (2, 'Firefighting Vehicle', 'FFV-018', 'Vehicle', '2020-09-01', '2035-09-01', 'OK');
 
 -- Inspection
-INSERT INTO Inspection (gear_id, date, inspector_id, inspection_type, condition_notes, result)
+INSERT INTO Inspection (gear_id, inspection_date, inspector_id, inspection_type, condition_notes, result)
 VALUES
 (1, '2025-10-10', 2, 'Routine', 'Helmet clean and secure', 'Passed'),
 (2, '2025-10-12', 2, 'Repair', 'Oxygen valve leaking', 'Needs Repair'),
@@ -157,12 +155,12 @@ VALUES
 (4, '2025-10-09', 2, 'Routine', 'Gloves slightly worn', 'Passed');
 
 -- MaintenanceSchedule
-INSERT INTO MaintenanceSchedule (gear_id, scheduled_date, frequency, shared_across_department)
+INSERT INTO MaintenanceSchedule (gear_id, scheduled_date)
 VALUES
-(1, '2025-11-01', 'Monthly', TRUE),
-(2, '2025-10-20', 'Bi-Monthly', TRUE),
-(3, '2025-10-25', 'Monthly', TRUE),
-(4, '2025-11-15', 'Quarterly', FALSE);
+(1, '2025-11-01'),
+(2, '2025-10-20'),
+(3, '2025-10-25'),
+(4, '2025-11-15');
 
 -- MaintenanceReminder
 INSERT INTO MaintenanceReminder (gear_id, reminder_date, reminder_time, message, sent)
