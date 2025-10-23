@@ -52,6 +52,7 @@ class Gear(Base):
     station_id = Column(Integer, ForeignKey("station.id"), nullable=False)
     gear_name = Column(String(100), nullable=False)
     serial_number = Column(String(100), unique=True)
+    photo_url = Column(String(255))
     equipment_type = Column(String(100))
     purchase_date = Column(Date)
     expiry_date = Column(Date)
