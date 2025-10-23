@@ -92,9 +92,9 @@ api/
 
 ## Database
 
-The API uses SQLAlchemy ORM with SQLite (default). To use a different database:
+The API uses SQLAlchemy ORM with MySQL (default, via PyMySQL). To use a different database:
 1. Update `DATABASE_URL` in `.env`
-2. Install the appropriate database driver
+2. Install the appropriate database driver (e.g., `PyMySQL` for MySQL, `psycopg2` for PostgreSQL)
 
 ## Testing
 
