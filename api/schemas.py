@@ -59,6 +59,7 @@ class GearBase(BaseModel):
     station_id: int
     gear_name: str
     serial_number: Optional[str] = None
+    photo_url: Optional[str] = None
     equipment_type: Optional[str] = None
     purchase_date: Optional[date] = None
     expiry_date: Optional[date] = None

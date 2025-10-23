@@ -36,6 +36,7 @@ CREATE TABLE Gear (
     station_id INT NOT NULL,
     gear_name VARCHAR(100) NOT NULL,
     serial_number VARCHAR(100) UNIQUE,
+    photo_url VARCHAR(255),
     equipment_type VARCHAR(100),
     purchase_date DATE,
     expiry_date DATE,
@@ -125,26 +126,26 @@ VALUES
 ('P Pongpon', 'Firefighter', 'P.pongpon@gmail.com', '0888888888', 2, 2),
 ('Pon Phonlaphat', 'Firefighter', 'Pon.phonlaphat@gmail.com', '0888888888', 2, 2);
 -- Gear
-INSERT INTO Gear (station_id, gear_name, serial_number, equipment_type, purchase_date, expiry_date, status)
+INSERT INTO Gear (station_id, gear_name, serial_number, photo_url, equipment_type, purchase_date, expiry_date, status)
 VALUES
-(1, 'Fire Helmet', 'FH-001', 'Helmet', '2023-01-10', '2028-01-10', 'OK'),
-(1, 'Oxygen Tank', 'OT-002', 'Tank', '2022-11-15', '2027-11-15', 'Due Soon'),
-(2, 'Fire Hose', 'FH-003', 'Hose', '2023-06-01', '2026-06-01', 'Needs Service'),
-(2, 'Protective Gloves', 'PG-004', 'Gloves', '2024-02-20', '2027-02-20', 'OK'),
-(3, 'Fire Extinguisher', 'FE-005', 'Extinguisher', '2023-03-01', '2028-03-01', 'OK'),
-(3, 'Fire Extinguisher Ball', 'FEB-006', 'Extinguisher Ball', '2024-01-12', '2029-01-12', 'OK'),
-(4, 'Hose Jet Nozzle', 'HJ-007', 'Hose Jet', '2023-05-08', '2027-05-08', 'OK'),
-(4, 'Fire Bucket', 'FB-008', 'Bucket', '2022-09-25', '2026-09-25', 'OK'),
-(5, 'Flamezorb Powder', 'FZ-009', 'Absorbent Agent', '2024-04-02', '2027-04-02', 'OK'),
-(5, 'Fire Blanket', 'FBK-010', 'Blanket', '2023-08-10', '2028-08-10', 'OK'),
-(6, 'Fire Suit', 'FS-011', 'Protective Suit', '2022-11-01', '2027-11-01', 'Due Soon'),
-(6, 'Gas Tight Suit', 'GTS-012', 'Protective Suit', '2023-12-10', '2028-12-10', 'OK'),
-(7, 'Breathing Apparatus', 'BA-013', 'Respirator', '2023-02-14', '2026-02-14', 'Needs Service'),
-(7, 'Thermal Imaging Camera', 'TIC-014', 'Camera', '2024-01-20', '2029-01-20', 'OK'),
-(8, 'Positive Pressure Ventilation Fan', 'PPV-015', 'Ventilation', '2023-06-25', '2028-06-25', 'OK'),
-(8, 'Rescue Ladder', 'RL-016', 'Ladder', '2022-07-05', '2032-07-05', 'OK'),
-(1, 'Firefighting Drone', 'DR-017', 'Drone', '2024-02-01', '2029-02-01', 'OK'),
-(2, 'Firefighting Vehicle', 'FFV-018', 'Vehicle', '2020-09-01', '2035-09-01', 'OK');
+(1, 'Fire Helmet', 'FH-001', 'uploads/pic1.jpg', 'Helmet', '2023-01-10', '2028-01-10', 'OK'),
+(1, 'Oxygen Tank', 'OT-002', 'uploads/pic1.jpg', 'Tank', '2022-11-15', '2027-11-15', 'Due Soon'),
+(2, 'Fire Hose', 'FH-003', 'uploads/pic1.jpg', 'Hose', '2023-06-01', '2026-06-01', 'Needs Service'),
+(2, 'Protective Gloves', 'PG-004', 'uploads/pic1.jpg', 'Gloves', '2024-02-20', '2027-02-20', 'OK'),
+(3, 'Fire Extinguisher', 'FE-005', 'uploads/pic1.jpg', 'Extinguisher', '2023-03-01', '2028-03-01', 'OK'),
+(3, 'Fire Extinguisher Ball', 'FEB-006', 'uploads/pic1.jpg', 'Extinguisher Ball', '2024-01-12', '2029-01-12', 'OK'),
+(4, 'Hose Jet Nozzle', 'HJ-007', 'uploads/pic1.jpg', 'Hose Jet', '2023-05-08', '2027-05-08', 'OK'),
+(4, 'Fire Bucket', 'FB-008', 'uploads/pic1.jpg', 'Bucket', '2022-09-25', '2026-09-25', 'OK'),
+(5, 'Flamezorb Powder', 'FZ-009', 'uploads/pic1.jpg', 'Absorbent Agent', '2024-04-02', '2027-04-02', 'OK'),
+(5, 'Fire Blanket', 'FBK-010', 'uploads/pic1.jpg', 'Blanket', '2023-08-10', '2028-08-10', 'OK'),
+(6, 'Fire Suit', 'FS-011', 'uploads/pic1.jpg', 'Protective Suit', '2022-11-01', '2027-11-01', 'Due Soon'),
+(6, 'Gas Tight Suit', 'GTS-012', 'uploads/pic1.jpg', 'Protective Suit', '2023-12-10', '2028-12-10', 'OK'),
+(7, 'Breathing Apparatus', 'BA-013', 'uploads/pic1.jpg', 'Respirator', '2023-02-14', '2026-02-14', 'Needs Service'),
+(7, 'Thermal Imaging Camera', 'TIC-014', 'uploads/pic1.jpg', 'Camera', '2024-01-20', '2029-01-20', 'OK'),
+(8, 'Positive Pressure Ventilation Fan', 'PPV-015', 'uploads/pic1.jpg', 'Ventilation', '2023-06-25', '2028-06-25', 'OK'),
+(8, 'Rescue Ladder', 'RL-016', 'uploads/pic1.jpg', 'Ladder', '2022-07-05', '2032-07-05', 'OK'),
+(1, 'Firefighting Drone', 'DR-017', 'uploads/pic1.jpg', 'Drone', '2024-02-01', '2029-02-01', 'OK'),
+(2, 'Firefighting Vehicle', 'FFV-018', 'uploads/pic1.jpg', 'Vehicle', '2020-09-01', '2035-09-01', 'OK');
 
 -- Inspection
 INSERT INTO Inspection (gear_id, inspection_date, inspector_id, inspection_type, condition_notes, result)
