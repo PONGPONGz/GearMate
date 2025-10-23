@@ -78,7 +78,7 @@ class Gear(GearBase):
 
 class InspectionBase(BaseModel):
     gear_id: int
-    date: Optional[date] = None
+    inspection_date: Optional[date] = None
     inspector_id: Optional[int] = None
     inspection_type: Optional[str] = None
     condition_notes: Optional[str] = None
