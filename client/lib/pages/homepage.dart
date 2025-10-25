@@ -31,7 +31,6 @@ class _HomepageState extends State<homepage> {
           gears.map<Map<String, dynamic>>((g) {
             return {
               'type': g['equipment_type'] ?? 'Unknown',
-              'status': g['status'] ?? 'OK',
               'name': g['gear_name'] ?? 'Unnamed',
               'id': g['serial_number'] ?? (g['id']?.toString() ?? ''),
               'station': 'Station ${g['station_id'] ?? ''}',
@@ -60,19 +59,6 @@ class _HomepageState extends State<homepage> {
   void _sortGearList(String option) {
     // Delegate sorting to server
     _fetchGears(option);
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'OK':
-        return Colors.green;
-      case 'Due Soon':
-        return Colors.orange;
-      case 'Needs Service':
-        return Colors.redAccent;
-      default:
-        return Colors.grey;
-    }
   }
 
   @override
@@ -270,7 +256,7 @@ class _HomepageState extends State<homepage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // type, status, and details
+                          // type, and details
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,23 +281,6 @@ class _HomepageState extends State<homepage> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(gear['status']),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        gear['status'],
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),

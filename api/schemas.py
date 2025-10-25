@@ -63,7 +63,6 @@ class GearBase(BaseModel):
     equipment_type: Optional[str] = None
     purchase_date: Optional[date] = None
     expiry_date: Optional[date] = None
-    status: Optional[str] = None
 
 
 class GearCreate(GearBase):
