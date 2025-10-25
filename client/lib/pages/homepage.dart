@@ -35,7 +35,7 @@ class _HomepageState extends State<homepage> {
               'id': g['serial_number'] ?? (g['id']?.toString() ?? ''),
               'station': 'Station ${g['station_id'] ?? ''}',
               // Using expiry_date as next maintenance proxy to avoid schema change
-              'nextMaintenance': g['expiry_date'] ?? 'N/A',
+              'nextMaintenance': g['maintenance_date'] ?? 'N/A',
               'purchase': g['purchase_date'] ?? 'N/A',
               'expiry': g['expiry_date'] ?? 'N/A',
               'image': g['photo_url'] ?? '',
