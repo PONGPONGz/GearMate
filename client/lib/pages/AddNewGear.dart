@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gear_mate/services/gear_api.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class addnewgearpage extends StatefulWidget {
   @override
@@ -19,6 +21,9 @@ class _AddGearPageState extends State<addnewgearpage> {
   final TextEditingController _gearNameController = TextEditingController();
   final TextEditingController _serialController = TextEditingController();
 
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
+
   Future<void> _selectDate(
     BuildContext context,
     DateTime? currentDate,
@@ -31,6 +36,48 @@ class _AddGearPageState extends State<addnewgearpage> {
       lastDate: DateTime(2100),
     );
     if (picked != null) onDateSelected(picked);
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1800,
+        maxHeight: 1800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to take photo: $e')));
+    }
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1800,
+        maxHeight: 1800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to select photo: $e')));
+    }
   }
 
   @override
@@ -110,11 +157,58 @@ class _AddGearPageState extends State<addnewgearpage> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
+                if (_selectedImage != null) ...[
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            _selectedImage!,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.black54,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _selectedImage = null;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 Row(
                   children: [
-                    _buildButton(Icons.camera_alt, "Take Photo"),
+                    _buildButton(
+                      Icons.camera_alt,
+                      "Take Photo",
+                      _pickImageFromCamera,
+                    ),
                     const SizedBox(width: 10),
-                    _buildButton(Icons.photo_library, "Choose from Gallery"),
+                    _buildButton(
+                      Icons.photo_library,
+                      "Choose from Gallery",
+                      _pickImageFromGallery,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 30),
@@ -215,9 +309,9 @@ class _AddGearPageState extends State<addnewgearpage> {
     );
   }
 
-  Widget _buildButton(IconData icon, String text) {
+  Widget _buildButton(IconData icon, String text, VoidCallback onPressed) {
     return ElevatedButton.icon(
-      onPressed: () {},
+      onPressed: onPressed,
       icon: Icon(icon),
       label: Text(text),
       style: ElevatedButton.styleFrom(
@@ -249,6 +343,7 @@ class _AddGearPageState extends State<addnewgearpage> {
                 purchaseDate = null;
                 expiryDate = null;
                 maintenanceDate = null;
+                _selectedImage = null;
               });
               return;
             }
