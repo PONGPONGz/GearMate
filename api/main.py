@@ -1,12 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import models
+from database import engine
+
+# Import routers
+from routers import departments, stations, firefighters, gears, inspections, schedules, reminders
+from routers import damage_reports
+
 
 app = FastAPI(title="GearMate API", version="1.0.0")
+
+# DB tables
+models.Base.metadata.create_all(bind=engine)
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"], # In production, replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,3 +33,14 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
+
+
+# Include routers
+app.include_router(departments.router)
+app.include_router(stations.router)
+app.include_router(firefighters.router)
+app.include_router(gears.router)
+app.include_router(inspections.router)
+app.include_router(schedules.router)
+app.include_router(reminders.router)
+app.include_router(damage_reports.router)

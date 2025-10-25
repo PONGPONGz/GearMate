@@ -9,6 +9,8 @@ services:
       - "8000:8000"
     volumes:
       - ./api:/app
+    env_file:
+      - ./api/.env
     environment:
       - DEBUG=True
       - HOST=0.0.0.0
