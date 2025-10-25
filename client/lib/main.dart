@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
-import 'home_page.dart';
+import 'pages/homepage.dart';
+import 'pages/SchedulePage.dart';
+import 'pages/AddNewGear.dart';
 
 void main() {
   runApp(const GearMateApp());
@@ -13,16 +14,16 @@ class GearMateApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const coral = Color(0xFFE85A4F);
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'GearMate',
-      theme: ThemeData(
-        useMaterial3: false,
-        primaryColor: coral,
-        scaffoldBackgroundColor: const Color(0xFFF5F6F8),
-        fontFamily: 'SF Pro',
-        colorScheme: ColorScheme.fromSeed(seedColor: coral, primary: coral),
-      ),
-      home: const HomePage(),
+      theme: ThemeData(primaryColor: Color(0xFFFF473F), fontFamily: 'WorkSan'),
+      // home: homepage(),
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => homepage(),
+        '/schedule': (context) => schedulepage(),
+        '/addgear': (context) => addnewgearpage(),
+      },
     );
   }
 }
