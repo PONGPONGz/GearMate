@@ -128,24 +128,24 @@ VALUES
 -- Gear
 INSERT INTO Gear (station_id, gear_name, serial_number, photo_url, equipment_type, purchase_date, expiry_date)
 VALUES
-(1, 'Fire Helmet', 'FH-001', 'uploads/pic1.jpg', 'Helmet', '2023-01-10', '2028-01-10'),
-(1, 'Oxygen Tank', 'OT-002', 'uploads/pic1.jpg', 'Tank', '2022-11-15', '2027-11-15'),
-(2, 'Fire Hose', 'FH-003', 'uploads/pic1.jpg', 'Hose', '2023-06-01', '2026-06-01'),
-(2, 'Protective Gloves', 'PG-004', 'uploads/pic1.jpg', 'Gloves', '2024-02-20', '2027-02-20'),
-(3, 'Fire Extinguisher', 'FE-005', 'uploads/pic1.jpg', 'Extinguisher', '2023-03-01', '2028-03-01'),
-(3, 'Fire Extinguisher Ball', 'FEB-006', 'uploads/pic1.jpg', 'Extinguisher Ball', '2024-01-12', '2029-01-12'),
-(4, 'Hose Jet Nozzle', 'HJ-007', 'uploads/pic1.jpg', 'Hose Jet', '2023-05-08', '2027-05-08'),
-(4, 'Fire Bucket', 'FB-008', 'uploads/pic1.jpg', 'Bucket', '2022-09-25', '2026-09-25'),
-(5, 'Flamezorb Powder', 'FZ-009', 'uploads/pic1.jpg', 'Absorbent Agent', '2024-04-02', '2027-04-02'),
-(5, 'Fire Blanket', 'FBK-010', 'uploads/pic1.jpg', 'Blanket', '2023-08-10', '2028-08-10'),
-(6, 'Fire Suit', 'FS-011', 'uploads/pic1.jpg', 'Protective Suit', '2022-11-01', '2027-11-01'),
-(6, 'Gas Tight Suit', 'GTS-012', 'uploads/pic1.jpg', 'Protective Suit', '2023-12-10', '2028-12-10'),
-(7, 'Breathing Apparatus', 'BA-013', 'uploads/pic1.jpg', 'Respirator', '2023-02-14', '2026-02-14'),
-(7, 'Thermal Imaging Camera', 'TIC-014', 'uploads/pic1.jpg', 'Camera', '2024-01-20', '2029-01-20'),
-(8, 'Positive Pressure Ventilation Fan', 'PPV-015', 'uploads/pic1.jpg', 'Ventilation', '2023-06-25', '2028-06-25'),
-(8, 'Rescue Ladder', 'RL-016', 'uploads/pic1.jpg', 'Ladder', '2022-07-05', '2032-07-05'),
-(1, 'Firefighting Drone', 'DR-017', 'uploads/pic1.jpg', 'Drone', '2024-02-01', '2029-02-01'),
-(2, 'Firefighting Vehicle', 'FFV-018', 'uploads/pic1.jpg', 'Vehicle', '2020-09-01', '2035-09-01');
+(1, 'Fire Helmet', 'FH-001', 'https://sentineles.b-cdn.net/wp-content/uploads/2024/07/06035412/pic-2.jpg', 'Helmet', '2023-01-10', '2028-01-10'),
+(1, 'Oxygen Tank', 'OT-002', 'https://5.imimg.com/data5/SELLER/Default/2020/12/MQ/RD/NT/37881237/breathing-apparatus-sets.jpeg', 'Tank', '2022-11-15', '2027-11-15'),
+(2, 'Fire Hose', 'FH-003', 'https://cusac-pfcusack-gob2b.b-cdn.net/imagecache/856acc4a-c70c-4c1d-a081-afd200b4676e/Fire-Hoses_1000x1000.jpg', 'Hose', '2023-06-01', '2026-06-01'),
+(2, 'Protective Gloves', 'PG-004', 'https://img.directindustry.com/images_di/photo-mg/166333-19107800.jpg', 'Gloves', '2024-02-20', '2027-02-20'),
+(3, 'Fire Extinguisher', 'FE-005', 'https://checkfire.co.uk/wp-content/uploads/2025/04/RX-KMD-002-ECF.webp', 'Extinguisher', '2023-03-01', '2028-03-01'),
+(3, 'Fire Extinguisher Ball', 'FEB-006', 'https://techstorelb.com/wp-content/uploads/2024/01/EXT-FIRE-BALL.jpg', 'Extinguisher Ball', '2024-01-12', '2029-01-12'),
+(4, 'Hose Jet Nozzle', 'HJ-007', 'https://5.imimg.com/data5/ANDROID/Default/2024/12/471622974/ZK/RD/JQ/162102082/product-jpeg-500x500.jpg', 'Hose Jet', '2023-05-08', '2027-05-08'),
+(4, 'Fire Bucket', 'FB-008', 'https://firechiefglobal.com/media/catalog/product/cache/a3f27e15450998d1fc89d708ade3fdd5/T/d/Tdzce5OsmKjlRmJN_1.jpg', 'Bucket', '2022-09-25', '2026-09-25'),
+(5, 'Flamezorb Powder', 'FZ-009', 'https://www.the-safety.shop/cdn/shop/products/flamezorb_grande.jpg?v=1579820356', 'Absorbent Agent', '2024-04-02', '2027-04-02'),
+(5, 'Fire Blanket', 'FBK-010', 'https://media.rs-online.com/F0523178-01.jpg', 'Blanket', '2023-08-10', '2028-08-10'),
+(6, 'Fire Suit', 'FS-011', 'https://www.eagletechnicalproducts.com/wp-content/uploads/2023/02/OPTIMUS-Perforated-Gold-Front-1-600x600.jpg', 'Protective Suit', '2022-11-01', '2027-11-01'),
+(6, 'Gas Tight Suit', 'GTS-012', 'https://eastwindsafety.com/wp-content/uploads/2021/08/draeger-cps-6900-gas-tight-suit-east-wind-safety-dubai-abudhabi-uae.jpeg', 'Protective Suit', '2023-12-10', '2028-12-10'),
+(7, 'Breathing Apparatus', 'BA-013', 'https://www.hansa-safety.com/wp-content/uploads/2024/07/SCBA.png', 'Respirator', '2023-02-14', '2026-02-14'),
+(7, 'Thermal Imaging Camera', 'TIC-014', 'https://media.rs-online.com/R2732555-01.jpg', 'Camera', '2024-01-20', '2029-01-20'),
+(8, 'Positive Pressure Ventilation Fan', 'PPV-015', 'https://newage-india.in/wp-content/uploads/2021/06/Engine-Driven-Positive-Pressure-Ventilator.jpg', 'Ventilation', '2023-06-25', '2028-06-25'),
+(8, 'Rescue Ladder', 'RL-016', 'https://kstrong.com/wp-content/uploads/UFR1018-RSCLDRK-6-1.jpg', 'Ladder', '2022-07-05', '2032-07-05'),
+(1, 'Firefighting Drone', 'DR-017', 'https://i0.wp.com/www.worldronemarket.com/wp-content/uploads/2022/08/Helio-Fire-Fighting-Drone-50DXF-3.png?fit=1200%2C1200&ssl=1', 'Drone', '2024-02-01', '2029-02-01'),
+(2, 'Firefighting Vehicle', 'FFV-018', 'https://www.firexuae.com/files/products/trucks_vehicles/fire_truck/municipal_firefighting_vehicle/13.jpg', 'Vehicle', '2020-09-01', '2035-09-01');
 
 -- Inspection
 INSERT INTO Inspection (gear_id, inspection_date, inspector_id, inspection_type, condition_notes, result)
