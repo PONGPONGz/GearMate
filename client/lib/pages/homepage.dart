@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:gear_mate/services/gear_api.dart';
 
 class homepage extends StatefulWidget {
   @override
@@ -8,56 +8,58 @@ class homepage extends StatefulWidget {
 
 class _HomepageState extends State<homepage> {
   String _sortOption = 'Name';
+  bool _loading = false;
+  String? _error;
 
-  List<Map<String, dynamic>> gearList = [
-    {
-      'type': 'Helmet',
-      'status': 'OK',
-      'name': 'Fire Helmet',
-      'id': 'FH-001',
-      'station': 'Station 1',
-      'nextMaintenance': 'Sat, 1 November 2025',
-      'purchase': '2023-01-10',
-      'expiry': '2028-01-10',
-      'image': 'assets/images/FireHelmet.jpeg',
-    },
-    {
-      'type': 'Tank',
-      'status': 'Due Soon',
-      'name': 'Oxygen Tank',
-      'id': 'OT-002',
-      'station': 'Station 1',
-      'nextMaintenance': 'Mon, 20 October 2025',
-      'purchase': '2022-11-15',
-      'expiry': '2027-11-15',
-      'image': 'assets/images/OxygenTank.jpeg',
-    },
-    {
-      'type': 'Nozzle',
-      'status': 'Needs Service',
-      'name': 'Fire Hose',
-      'id': 'FH-003',
-      'station': 'Station 2',
-      'nextMaintenance': 'Sat, 25 October 2025',
-      'purchase': '2023-06-01',
-      'expiry': '2026-06-01',
-      'image': 'assets/images/FireHose.webp',
-    },
-  ];
+  List<Map<String, dynamic>> gearList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGears(_sortOption);
+  }
+
+  Future<void> _fetchGears(String sortBy) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final gears = await GearApi.fetchGears(sortBy);
+      // Map API fields to UI fields
+      final mapped =
+          gears.map<Map<String, dynamic>>((g) {
+            return {
+              'type': g['equipment_type'] ?? 'Unknown',
+              'status': g['status'] ?? 'OK',
+              'name': g['gear_name'] ?? 'Unnamed',
+              'id': g['serial_number'] ?? (g['id']?.toString() ?? ''),
+              'station': 'Station ${g['station_id'] ?? ''}',
+              // Using expiry_date as next maintenance proxy to avoid schema change
+              'nextMaintenance': g['expiry_date'] ?? 'N/A',
+              'purchase': g['purchase_date'] ?? 'N/A',
+              'expiry': g['expiry_date'] ?? 'N/A',
+              'image': g['photo_url'] ?? '',
+            };
+          }).toList();
+      setState(() {
+        _sortOption = sortBy;
+        gearList = mapped;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   void _sortGearList(String option) {
-    setState(() {
-      _sortOption = option;
-      if (option == 'Name') {
-        gearList.sort((a, b) => a['name'].compareTo(b['name']));
-      } else if (option == 'Type') {
-        gearList.sort((a, b) => a['type'].compareTo(b['type']));
-      } else if (option == 'Maintenance Date') {
-        gearList.sort(
-          (a, b) => a['nextMaintenance'].compareTo(b['nextMaintenance']),
-        );
-      }
-    });
+    // Delegate sorting to server
+    _fetchGears(option);
   }
 
   Color _getStatusColor(String status) {
@@ -238,6 +240,18 @@ class _HomepageState extends State<homepage> {
               ),
             ),
 
+            if (_loading) const LinearProgressIndicator(minHeight: 2),
+
+            // Errors / Loading
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error: \'${_error}\'',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+
             // Gear List
             Expanded(
               child: ListView.builder(
@@ -383,10 +397,21 @@ class _HomepageState extends State<homepage> {
                             child: SizedBox(
                               width: 80,
                               height: 80,
-                              child: Image.asset(
-                                gear['image'],
-                                fit: BoxFit.cover,
-                              ),
+                              child:
+                                  (gear['image'] != null &&
+                                          (gear['image'] as String).startsWith(
+                                            'http',
+                                          ))
+                                      ? Image.network(
+                                        gear['image'],
+                                        fit: BoxFit.cover,
+                                      )
+                                      : Image.asset(
+                                        (gear['image'] as String).isNotEmpty
+                                            ? gear['image']
+                                            : 'assets/images/GearMate.png',
+                                        fit: BoxFit.cover,
+                                      ),
                             ),
                           ),
                         ],
