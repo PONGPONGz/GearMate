@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from typing import List
 import models
 import schemas
@@ -121,7 +121,15 @@ def get_gears(
     elif sort == "Type":
         query = query.order_by(models.Gear.equipment_type.asc())
     elif sort == "Maintenance Date":
-        query = query.order_by(maintenance_subquery.c.next_maintenance_date.asc())
+        # For MySQL compatibility: use CASE to put NULLs last
+        # Order by: 0 for non-null dates (ascending), 1 for null dates
+        query = query.order_by(
+            case(
+                (maintenance_subquery.c.next_maintenance_date.is_(None), 1),
+                else_=0
+            ),
+            maintenance_subquery.c.next_maintenance_date.asc()
+        )
 
     results = query.all()
     
