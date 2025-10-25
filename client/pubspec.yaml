@@ -58,11 +58,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - assets/images/FireHelmet.jpeg
-  #   - assets/images/FireHose.webp
-  #   - assets/images/OxygenTank.jpeg
-  #   - assets/images/GearMate.png
+  assets:
+    - assets/images/GearMate.png
 
   #   - images/a_dot_ham.jpeg
 
