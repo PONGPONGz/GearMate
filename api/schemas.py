@@ -71,6 +71,7 @@ class GearCreate(GearBase):
 
 class Gear(GearBase):
     id: int
+    next_maintenance_date: Optional[date] = None
 
     class Config:
         orm_mode = True

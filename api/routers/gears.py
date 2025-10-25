@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 import models
 import schemas
@@ -34,16 +35,54 @@ def get_gears(
     Sorting options map to columns without changing DB schema:
     - Name -> Gear.gear_name ASC
     - Type -> Gear.equipment_type ASC
-    - Maintenance Date -> Gear.expiry_date ASC (proxy for next maintenance)
+    - Maintenance Date -> next scheduled maintenance date from MaintenanceSchedule
     """
-    query = db.query(models.Gear)
+    # Subquery to get the earliest scheduled maintenance date for each gear
+    maintenance_subquery = (
+        db.query(
+            models.MaintenanceSchedule.gear_id,
+            func.min(models.MaintenanceSchedule.scheduled_date).label('next_maintenance_date')
+        )
+        .group_by(models.MaintenanceSchedule.gear_id)
+        .subquery()
+    )
+    
+    # Main query with left join to include maintenance dates
+    query = (
+        db.query(
+            models.Gear,
+            maintenance_subquery.c.next_maintenance_date
+        )
+        .outerjoin(
+            maintenance_subquery,
+            models.Gear.id == maintenance_subquery.c.gear_id
+        )
+    )
 
+    # Apply sorting
     if sort == "Name":
         query = query.order_by(models.Gear.gear_name.asc())
     elif sort == "Type":
         query = query.order_by(models.Gear.equipment_type.asc())
     elif sort == "Maintenance Date":
-        # Using expiry_date as a proxy for maintenance-related date without schema changes
-        query = query.order_by(models.Gear.expiry_date.asc())
+        query = query.order_by(maintenance_subquery.c.next_maintenance_date.asc())
 
-    return query.all()
+    results = query.all()
+    
+    # Build response with next_maintenance_date included
+    gears = []
+    for gear, next_maintenance in results:
+        gear_dict = {
+            'id': gear.id,
+            'station_id': gear.station_id,
+            'gear_name': gear.gear_name,
+            'serial_number': gear.serial_number,
+            'photo_url': gear.photo_url,
+            'equipment_type': gear.equipment_type,
+            'purchase_date': gear.purchase_date,
+            'expiry_date': gear.expiry_date,
+            'next_maintenance_date': next_maintenance,
+        }
+        gears.append(gear_dict)
+    
+    return gears
