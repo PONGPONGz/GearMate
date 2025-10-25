@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gear_mate/services/gear_api.dart';
+import 'dart:io' show Platform;
 
 class homepage extends StatefulWidget {
   @override
@@ -12,6 +13,12 @@ class _HomepageState extends State<homepage> {
   String? _error;
 
   List<Map<String, dynamic>> gearList = [];
+
+  // Helper to get base URL for images
+  String get _baseUrl {
+    if (Platform.isAndroid) return 'http://10.0.2.2:8000';
+    return 'http://127.0.0.1:8000';
+  }
 
   @override
   void initState() {
@@ -374,17 +381,27 @@ class _HomepageState extends State<homepage> {
                               height: 80,
                               child:
                                   (gear['image'] != null &&
-                                          (gear['image'] as String).startsWith(
-                                            'http',
-                                          ))
+                                          (gear['image'] as String).isNotEmpty)
                                       ? Image.network(
-                                        gear['image'],
+                                        (gear['image'] as String).startsWith(
+                                              'http',
+                                            )
+                                            ? gear['image']
+                                            : '$_baseUrl${gear['image']}',
                                         fit: BoxFit.cover,
+                                        errorBuilder: (
+                                          context,
+                                          error,
+                                          stackTrace,
+                                        ) {
+                                          return Image.asset(
+                                            'assets/images/GearMate.png',
+                                            fit: BoxFit.cover,
+                                          );
+                                        },
                                       )
                                       : Image.asset(
-                                        (gear['image'] as String).isNotEmpty
-                                            ? gear['image']
-                                            : 'assets/images/GearMate.png',
+                                        'assets/images/GearMate.png',
                                         fit: BoxFit.cover,
                                       ),
                             ),

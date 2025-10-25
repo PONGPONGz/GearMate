@@ -380,6 +380,22 @@ class _AddGearPageState extends State<addnewgearpage> {
               final created = await GearApi.createGear(payload);
               final gearId = created['id'] as int;
 
+              // Upload photo if selected
+              if (_selectedImage != null) {
+                try {
+                  await GearApi.uploadGearPhoto(
+                    gearId: gearId,
+                    imageFile: _selectedImage!,
+                  );
+                } catch (e) {
+                  // Don't fail the whole operation if photo upload fails
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Warning: Photo upload failed: $e')),
+                  );
+                }
+              }
+
               if (maintenanceDate != null) {
                 await GearApi.createSchedule(
                   gearId: gearId,

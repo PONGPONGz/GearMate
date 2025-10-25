@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
 import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 class GearApi {
   // Determine base host for emulator vs local
@@ -61,5 +63,40 @@ class GearApi {
       );
     }
     return jsonDecode(resp.body) as Map<String, dynamic>;
+  }
+
+  /// Upload a photo for a gear
+  static Future<Map<String, dynamic>> uploadGearPhoto({
+    required int gearId,
+    required File imageFile,
+  }) async {
+    final uri = Uri.parse('$_base/gears/$gearId/upload-photo');
+
+    var request = http.MultipartRequest('POST', uri);
+
+    // Detect MIME type
+    final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
+    final mimeTypeParts = mimeType.split('/');
+
+    // Add the file to the request
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+      ),
+    );
+
+    // Send the request
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to upload photo: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 }
