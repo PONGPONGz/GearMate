@@ -1,25 +1,106 @@
 import 'package:flutter/material.dart';
 import 'services/notification_service.dart';
+import 'data/reminder_api.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.instance.init();
 
-  // ---- quick test  ----
-  // await NotificationService.instance.cancelAll();
-  // final now = DateTime.now();
-  // await NotificationService.instance.scheduleDailyMorning(
-  //   hour: now.hour,
-  //   minute: (now.minute + 1) % 60, // fires in ~1 minute
-  //   body: "Don't forget to check your gear",
+  // ===================================================
+  // DUMMY TESTS (commented out)
+  // ===================================================
+  // await NotificationService.instance.cancelAll(); // clear old notifications
+
+  // // Dummy test #1 – simulates daily reminder (fires in ~10s)
+  // await NotificationService.instance.scheduleOneShot(
+  //   id: 9001,
+  //   whenLocal: DateTime.now().add(const Duration(seconds: 10)),
+  //   title: 'Daily Reminder Test',
+  //   body: "This simulates the 8:00 daily reminder — working fine!",
   // );
 
-  // ---- production daily time ----
+  // // Dummy test #2 – simulates DB reminder (fires in ~20s)
+  // await NotificationService.instance.scheduleOneShot(
+  //   id: 9002,
+  //   whenLocal: DateTime.now().add(const Duration(seconds: 20)),
+  //   title: 'DB Reminder Test',
+  //   body: "This simulates a DB-driven maintenance reminder — working fine!",
+  // );
+
+  // ===================================================
+  // REAL DAILY REMINDER (08:00 Bangkok)
+  // ===================================================
   await NotificationService.instance.scheduleDailyMorning(
-    hour: 8,      
-    minute: 0,    
-    body: "Don't forget to check your gear and mentenance schedule!",
+    hour: 8,
+    minute: 0,
+    body: "Don't forget to check your gear and maintenance schedule!",
   );
+
+  // ===================================================
+  // REAL DB REMINDERS
+  // ===================================================
+  try {
+    final reminders = await ReminderApi.getAll();
+    final now = DateTime.now();
+    int baseId = 20000; // keep away from other IDs
+
+    // Optional: sort by time (helps logs)
+    reminders.sort((a, b) {
+      final da = a.reminderDate ?? DateTime(2100);
+      final db = b.reminderDate ?? DateTime(2100);
+      final ta = a.reminderTime ?? '00:00:00';
+      final tb = b.reminderTime ?? '00:00:00';
+      final aa = DateTime(da.year, da.month, da.day,
+          int.parse(ta.split(':')[0]), int.parse(ta.split(':')[1]));
+      final bb = DateTime(db.year, db.month, db.day,
+          int.parse(tb.split(':')[0]), int.parse(tb.split(':')[1]));
+      return aa.compareTo(bb);
+    });
+
+    // Debug: how many we fetched
+    // ignore: avoid_print
+    print('DB reminders fetched: ${reminders.length}');
+
+    for (final r in reminders) {
+      if (r.reminderDate == null || r.reminderTime == null) {
+        // ignore: avoid_print
+        print('Skip reminder id=${r.id}: missing date/time');
+        continue;
+      }
+
+      final parts = r.reminderTime!.split(':'); // HH:MM:SS
+      final hh = int.tryParse(parts[0]) ?? 9;
+      final mm = int.tryParse(parts[1]) ?? 0;
+      final ss = int.tryParse(parts[2]) ?? 0;
+
+      final whenLocal = DateTime(
+        r.reminderDate!.year,
+        r.reminderDate!.month,
+        r.reminderDate!.day,
+        hh, mm, ss,
+      );
+
+      if (whenLocal.isBefore(now)) {
+        // ignore: avoid_print
+        print('Skip past reminder id=${r.id} at $whenLocal');
+        continue;
+      }
+
+      // ignore: avoid_print
+      print('Schedule reminder id=${r.id} at $whenLocal');
+
+      await NotificationService.instance.scheduleOneShot(
+        id: baseId + r.id,
+        whenLocal: whenLocal,
+        title: 'Maintenance Reminder',
+        body: r.message ?? 'Scheduled maintenance reminder',
+      );
+    }
+  } catch (e) {
+    // Keep app alive even if API is down
+    // ignore: avoid_print
+    print('Failed to fetch/schedule DB reminders: $e');
+  }
 
   runApp(const _HeadlessApp());
 }
