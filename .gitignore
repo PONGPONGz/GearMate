@@ -45,6 +45,20 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android local properties (root level)
+android/local.properties
+
+# iOS Flutter generated files
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/Generated.xcconfig
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+
+# macOS Flutter generated/ephemeral files
+macos/Flutter/ephemeral/
+macos/Flutter/Flutter-Generated.xcconfig
+macos/Flutter/flutter_export_environment.sh
+
 # Python (API)
 api/__pycache__/
 api/*.py[cod]
