@@ -1,7 +1,41 @@
 import 'package:flutter/material.dart';
+import 'services/notification_service.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.init();
+
+  // ---- quick test  ----
+  // await NotificationService.instance.cancelAll();
+  // final now = DateTime.now();
+  // await NotificationService.instance.scheduleDailyMorning(
+  //   hour: now.hour,
+  //   minute: (now.minute + 1) % 60, // fires in ~1 minute
+  //   body: "Don't forget to check your gear",
+  // );
+
+  // ---- production daily time ----
+  await NotificationService.instance.scheduleDailyMorning(
+    hour: 8,      
+    minute: 0,    
+    body: "Don't forget to check your gear and mentenance schedule!",
+  );
+
+  runApp(const _HeadlessApp());
+}
+
+class _HeadlessApp extends StatelessWidget {
+  const _HeadlessApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(child: Text('GearMate daily reminder active')),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

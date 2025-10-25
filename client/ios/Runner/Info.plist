@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+  		<string>fetch</string>
+ 		<string>processing</string>
+	</array>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>We use notifications to remind you to check and maintain your gear.</string>
 </dict>
 </plist>
