@@ -208,8 +208,14 @@ class _HomepageState extends State<homepage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/addgear');
+                        onPressed: () async {
+                          final result = await Navigator.pushNamed(
+                            context,
+                            '/addgear',
+                          );
+                          if (result == true) {
+                            _fetchGears(_sortOption);
+                          }
                         },
                         icon: Icon(Icons.add, color: Colors.white),
                         label: Text(

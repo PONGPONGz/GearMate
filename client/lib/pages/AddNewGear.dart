@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gear_mate/services/gear_api.dart';
 
 class addnewgearpage extends StatefulWidget {
   @override
@@ -15,7 +16,14 @@ class _AddGearPageState extends State<addnewgearpage> {
   DateTime? expiryDate;
   DateTime? maintenanceDate;
 
-  Future<void> _selectDate(BuildContext context, DateTime? currentDate, Function(DateTime) onDateSelected) async {
+  final TextEditingController _gearNameController = TextEditingController();
+  final TextEditingController _serialController = TextEditingController();
+
+  Future<void> _selectDate(
+    BuildContext context,
+    DateTime? currentDate,
+    Function(DateTime) onDateSelected,
+  ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: currentDate ?? DateTime.now(),
@@ -26,16 +34,25 @@ class _AddGearPageState extends State<addnewgearpage> {
   }
 
   @override
+  void dispose() {
+    _gearNameController.dispose();
+    _serialController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFFFF473F),
-        title: const Text("Add Gear", style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            ),
+        title: const Text(
+          "Add Gear",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -49,19 +66,49 @@ class _AddGearPageState extends State<addnewgearpage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTextField("Gear Name", "Enter gear name"),
-                _buildTextField("Serial Number", "Enter serial number"),
-                _buildDropdown("Station Number", ["Station 1", "Station 2"], (value) {
+                _buildTextField(
+                  label: "Gear Name",
+                  hint: "Enter gear name",
+                  controller: _gearNameController,
+                  validator:
+                      (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                _buildTextField(
+                  label: "Serial Number",
+                  hint: "Enter serial number",
+                  controller: _serialController,
+                ),
+                _buildDropdown("Station Number", ["Station 1", "Station 2"], (
+                  value,
+                ) {
                   setState(() => selectedStation = value);
                 }),
-                _buildDropdown("Gear Type", ["Helmet", "Hose", "Oxygen Tank"], (value) {
+                _buildDropdown("Gear Type", ["Helmet", "Hose", "Oxygen Tank"], (
+                  value,
+                ) {
                   setState(() => selectedGearType = value);
                 }),
-                _buildDatePicker("Purchase Date", purchaseDate, (date) => setState(() => purchaseDate = date)),
-                _buildDatePicker("Expiry Date", expiryDate, (date) => setState(() => expiryDate = date)),
-                _buildDatePicker("Maintenance Date", maintenanceDate, (date) => setState(() => maintenanceDate = date)),
+                _buildDatePicker(
+                  "Purchase Date",
+                  purchaseDate,
+                  (date) => setState(() => purchaseDate = date),
+                ),
+                _buildDatePicker(
+                  "Expiry Date",
+                  expiryDate,
+                  (date) => setState(() => expiryDate = date),
+                ),
+                _buildDatePicker(
+                  "Maintenance Date",
+                  maintenanceDate,
+                  (date) => setState(() => maintenanceDate = date),
+                ),
                 const SizedBox(height: 10),
-                const Text("Upload Photo", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "Upload Photo",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -70,24 +117,24 @@ class _AddGearPageState extends State<addnewgearpage> {
                     _buildButton(Icons.photo_library, "Choose from Gallery"),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const Text("Status", style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _buildStatus("OK", Colors.greenAccent),
-                    _buildStatus("Due Soon", Colors.amberAccent),
-                    _buildStatus("Needs Service", Colors.redAccent),
-                  ],
-                ),
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _actionButton("Clear All", Colors.white,Color(0xFFFF473F),Color(0xFFFF473F)),
-                    _actionButton("Save Gear", const Color.fromARGB(255, 0, 0, 0), Colors.white, Colors.white),
+                    _actionButton(
+                      "Clear All",
+                      Colors.white,
+                      Color(0xFFFF473F),
+                      Color(0xFFFF473F),
+                    ),
+                    _actionButton(
+                      "Save Gear",
+                      const Color.fromARGB(255, 0, 0, 0),
+                      Colors.white,
+                      Colors.white,
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -96,10 +143,17 @@ class _AddGearPageState extends State<addnewgearpage> {
     );
   }
 
-  Widget _buildTextField(String label, String hint) {
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    TextEditingController? controller,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
+        controller: controller,
+        validator: validator,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
@@ -109,7 +163,11 @@ class _AddGearPageState extends State<addnewgearpage> {
     );
   }
 
-  Widget _buildDropdown(String label, List<String> items, Function(String?) onChanged) {
+  Widget _buildDropdown(
+    String label,
+    List<String> items,
+    Function(String?) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: DropdownButtonFormField<String>(
@@ -119,12 +177,19 @@ class _AddGearPageState extends State<addnewgearpage> {
         ),
         value: null,
         onChanged: onChanged,
-        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        items:
+            items
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
       ),
     );
   }
 
-  Widget _buildDatePicker(String label, DateTime? date, Function(DateTime) onDateSelected) {
+  Widget _buildDatePicker(
+    String label,
+    DateTime? date,
+    Function(DateTime) onDateSelected,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: InkWell(
@@ -137,7 +202,11 @@ class _AddGearPageState extends State<addnewgearpage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(date == null ? "Select $label".replaceAll("Select ", "") : date.toString().split(' ')[0]),
+              Text(
+                date == null
+                    ? "Select $label".replaceAll("Select ", "")
+                    : date.toString().split(' ')[0],
+              ),
               const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
             ],
           ),
@@ -160,26 +229,80 @@ class _AddGearPageState extends State<addnewgearpage> {
     );
   }
 
-  Widget _buildStatus(String label, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(label),
-      ),
-    );
-  }
-
-  Widget _actionButton(String text, Color background, Color borderColor, Color textColor) {
+  Widget _actionButton(
+    String text,
+    Color background,
+    Color borderColor,
+    Color textColor,
+  ) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: ElevatedButton(
-          onPressed: () {},
+          onPressed: () async {
+            if (text == 'Clear All') {
+              _gearNameController.clear();
+              _serialController.clear();
+              setState(() {
+                selectedStation = null;
+                selectedGearType = null;
+                purchaseDate = null;
+                expiryDate = null;
+                maintenanceDate = null;
+              });
+              return;
+            }
+
+            // Save Gear
+            if (!_formKey.currentState!.validate()) return;
+
+            if (selectedStation == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please select a Station Number')),
+              );
+              return;
+            }
+
+            try {
+              final stationMatch = RegExp(r"\d+").firstMatch(selectedStation!);
+              final stationId =
+                  stationMatch != null ? int.parse(stationMatch.group(0)!) : 1;
+
+              String? fmt(DateTime? d) =>
+                  d == null ? null : d.toIso8601String().split('T').first;
+
+              final payload = <String, dynamic>{
+                'station_id': stationId,
+                'gear_name': _gearNameController.text.trim(),
+                if (_serialController.text.trim().isNotEmpty)
+                  'serial_number': _serialController.text.trim(),
+                if (selectedGearType != null)
+                  'equipment_type': selectedGearType,
+                if (purchaseDate != null) 'purchase_date': fmt(purchaseDate),
+                if (expiryDate != null) 'expiry_date': fmt(expiryDate),
+              };
+
+              final created = await GearApi.createGear(payload);
+              final gearId = created['id'] as int;
+
+              if (maintenanceDate != null) {
+                await GearApi.createSchedule(
+                  gearId: gearId,
+                  scheduledDate: maintenanceDate!,
+                );
+              }
+
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Gear saved successfully')),
+              );
+              Navigator.pop(context, true);
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to save gear: $e')),
+              );
+            }
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: background,
             foregroundColor: textColor,
