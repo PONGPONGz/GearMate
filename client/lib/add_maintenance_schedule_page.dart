@@ -83,7 +83,7 @@ class _AddMaintenanceSchedulePageState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Invalid Gear ID. Enter a numeric id or a known serial number.',
+            'Invalid Gear ID. Enter a numeric ID.',
           ),
         ),
       );
