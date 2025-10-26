@@ -56,7 +56,6 @@ class Gear(Base):
     equipment_type = Column(String(100))
     purchase_date = Column(Date)
     expiry_date = Column(Date)
-    status = Column(String(50))
 
     station = relationship("Station", back_populates="gears")
     inspections = relationship("Inspection", back_populates="gear")
@@ -86,8 +85,10 @@ class MaintenanceSchedule(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gear_id = Column(Integer, ForeignKey("gear.id"))
     scheduled_date = Column(Date)
+    scheduled_time = Column(Time, nullable=False, default="00:00:00")
 
     gear = relationship("Gear", back_populates="maintenanceSchedules")
+    reminder = relationship("MaintenanceReminder", back_populates="schedule", uselist=False)
 
 
 class MaintenanceReminder(Base):
@@ -95,12 +96,14 @@ class MaintenanceReminder(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gear_id = Column(Integer, ForeignKey("gear.id"))
+    schedule_id = Column(Integer, ForeignKey("maintenanceSchedule.id"), nullable=True) 
     reminder_date = Column(Date)
-    reminder_time = Column(Time)
+    reminder_time = Column(Time, nullable=False, default="00:00:00")
     message = Column(String(255))
     sent = Column(Boolean, default=False)
 
     gear = relationship("Gear", back_populates="maintenanceReminders")
+    schedule = relationship("MaintenanceSchedule", back_populates="reminder")
 
 
 class DamageReport(Base):
