@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:gear_mate/services/gear_api.dart';
 
 class AddMaintenanceSchedulePage extends StatefulWidget {
   const AddMaintenanceSchedulePage({super.key, this.onSaved});
@@ -19,25 +20,32 @@ class _AddMaintenanceSchedulePageState
   final _dateCtrl = TextEditingController();
   DateTime? _scheduledDate;
 
-  final _frequencies = const [
-    'Daily',
-    'Weekly',
-    'Monthly',
-    'Quarterly',
-    'Yearly',
-    'Custom',
-  ];
-  String? _frequency;
-
-  bool? _sharedAcrossDept; // true / false
-
   final _df = DateFormat('yyyy-MM-dd');
+
+  bool _prefilledFromArgs = false;
+  bool _saving = false;
 
   @override
   void dispose() {
     _gearIdCtrl.dispose();
     _dateCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Prefill gear id from Navigator arguments if provided
+    if (!_prefilledFromArgs) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map) {
+        final dynamic val = args['gearId'];
+        if (val != null) {
+          _gearIdCtrl.text = val.toString();
+        }
+      }
+      _prefilledFromArgs = true;
+    }
   }
 
   Future<void> _pickDate() async {
@@ -61,32 +69,63 @@ class _AddMaintenanceSchedulePageState
       _gearIdCtrl.clear();
       _scheduledDate = null;
       _dateCtrl.clear();
-      _frequency = null;
-      _sharedAcrossDept = null;
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState?.validate() != true) return;
 
-    final data = MaintenanceSchedule(
-      gearId: _gearIdCtrl.text.trim(),
-      scheduledDate: _scheduledDate!,
-      frequency: _frequency!,
-      sharedAcrossDepartment: _sharedAcrossDept ?? false,
-    );
+    // Resolve gear_id: accept numeric id
+    final raw = _gearIdCtrl.text.trim();
+    int? gearId = int.tryParse(raw);
 
-    widget.onSaved?.call(data);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Schedule saved')));
-    Navigator.maybePop(context);
+    if (gearId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invalid Gear ID. Enter a numeric id or a known serial number.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await GearApi.createSchedule(
+        gearId: gearId,
+        scheduledDate: _scheduledDate!,
+      );
+
+      widget.onSaved?.call(
+        MaintenanceSchedule(gearId: raw, scheduledDate: _scheduledDate!),
+      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Schedule saved')));
+
+      // Navigate back to home and signal refresh
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(
+        context,
+      ).pushReplacementNamed('/', arguments: {'refresh': true});
+    } catch (e) {
+      final msg = e.toString();
+      // Surface a friendly message for conflict (one active schedule rule)
+      final friendly =
+          msg.contains('409')
+              ? 'This gear already has a pending schedule. Complete or cancel it first.'
+              : 'Failed to save schedule: $msg';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendly)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
@@ -110,9 +149,11 @@ class _AddMaintenanceSchedulePageState
                 controller: _gearIdCtrl,
                 textInputAction: TextInputAction.next,
                 decoration: _fieldDecoration(hint: 'Enter gear id'),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Gear ID is required'
-                    : null,
+                validator:
+                    (v) =>
+                        (v == null || v.trim().isEmpty)
+                            ? 'Gear ID is required'
+                            : null,
               ),
               const SizedBox(height: 20),
 
@@ -129,47 +170,20 @@ class _AddMaintenanceSchedulePageState
                     icon: const Icon(Icons.calendar_today_outlined),
                   ),
                 ),
-                validator: (_) =>
-                    _scheduledDate == null ? 'Please pick a date' : null,
-              ),
-              const SizedBox(height: 20),
-
-              _SectionLabel('Frequency'),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _frequency,
-                decoration: _fieldDecoration(
-                  hint: 'Select frequency',
-                ).copyWith(suffixIcon: const Icon(Icons.keyboard_arrow_down)),
-                items: _frequencies
-                    .map(
-                      (f) => DropdownMenuItem<String>(value: f, child: Text(f)),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _frequency = v),
-                validator: (v) =>
-                    v == null ? 'Please select a frequency' : null,
-              ),
-              const SizedBox(height: 24),
-
-              _SectionLabel('Shared Across Department'),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _RadioPill<bool>(
-                    title: 'True',
-                    value: true,
-                    groupValue: _sharedAcrossDept,
-                    onChanged: (v) => setState(() => _sharedAcrossDept = v),
-                  ),
-                  const SizedBox(width: 16),
-                  _RadioPill<bool>(
-                    title: 'False',
-                    value: false,
-                    groupValue: _sharedAcrossDept,
-                    onChanged: (v) => setState(() => _sharedAcrossDept = v),
-                  ),
-                ],
+                validator: (_) {
+                  if (_scheduledDate == null) return 'Please pick a date';
+                  final now = DateTime.now();
+                  final today = DateTime(now.year, now.month, now.day);
+                  final picked = DateTime(
+                    _scheduledDate!.year,
+                    _scheduledDate!.month,
+                    _scheduledDate!.day,
+                  );
+                  if (picked.isBefore(today)) {
+                    return 'Date cannot be in the past';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 40),
 
@@ -193,7 +207,7 @@ class _AddMaintenanceSchedulePageState
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _save,
+                      onPressed: _saving ? null : _save,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
@@ -202,7 +216,17 @@ class _AddMaintenanceSchedulePageState
                         elevation: 2,
                         textStyle: const TextStyle(fontWeight: FontWeight.w800),
                       ),
-                      child: const Text('Save Schedule'),
+                      child:
+                          _saving
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text('Save Schedule'),
                     ),
                   ),
                 ],
@@ -255,56 +279,14 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _RadioPill<T> extends StatelessWidget {
-  const _RadioPill({
-    required this.title,
-    required this.value,
-    required this.groupValue,
-    required this.onChanged,
-  });
-
-  final String title;
-  final T value;
-  final T? groupValue;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: () => onChanged(value),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Radio<T>(
-            value: value,
-            groupValue: groupValue,
-            onChanged: onChanged,
-            visualDensity: VisualDensity.compact,
-          ),
-          Text(title, style: const TextStyle(fontSize: 16)),
-        ],
-      ),
-    );
-  }
-}
-
 /// Simple data model for the page
 class MaintenanceSchedule {
   final String gearId;
   final DateTime scheduledDate;
-  final String frequency;
-  final bool sharedAcrossDepartment;
 
-  MaintenanceSchedule({
-    required this.gearId,
-    required this.scheduledDate,
-    required this.frequency,
-    required this.sharedAcrossDepartment,
-  });
+  MaintenanceSchedule({required this.gearId, required this.scheduledDate});
 
   @override
   String toString() =>
-      'MaintenanceSchedule(gearId: $gearId, date: $scheduledDate, '
-      'frequency: $frequency, sharedAcrossDepartment: $sharedAcrossDepartment)';
+      'MaintenanceSchedule(gearId: $gearId, date: $scheduledDate)';
 }
