@@ -47,16 +47,25 @@ class _HomepageState extends State<homepage> {
       // Map API fields to UI fields
       final mapped =
           gears.map<Map<String, dynamic>>((g) {
+            // Compose date and time for display
+            String maintenanceDisplay = 'N/A';
+            if (g['next_maintenance_date'] != null &&
+                g['next_maintenance_date'] != 'N/A') {
+              maintenanceDisplay = g['next_maintenance_date'].toString();
+              if (g['next_maintenance_time'] != null &&
+                  g['next_maintenance_time'] != '') {
+                maintenanceDisplay += ' ${g['next_maintenance_time']}';
+              } else {
+                maintenanceDisplay += ' 00:00:00';
+              }
+            }
             return {
               'type': g['equipment_type'] ?? 'Unknown',
               'name': g['gear_name'] ?? 'Unnamed',
-              // keep database id separate so we can reference it later
               'id': g['id']?.toString() ?? '',
-              // show serial number in UI and pass it to add schedule form
               'serialNumber': (g['serial_number']?.toString() ?? ''),
               'station': 'Station ${g['station_id'] ?? ''}',
-              // Use actual maintenance schedule date from API
-              'nextMaintenance': g['next_maintenance_date'] ?? 'N/A',
+              'nextMaintenance': maintenanceDisplay,
               'purchase': g['purchase_date'] ?? 'N/A',
               'expiry': g['expiry_date'] ?? 'N/A',
               'image': g['photo_url'] ?? '',
