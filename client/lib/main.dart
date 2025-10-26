@@ -92,6 +92,9 @@ class GearMateApp extends StatelessWidget {
     const coral = Color(0xFFE85A4F);
     return MaterialApp(
       title: 'GearMate',
+
+      // theme: ThemeData(primaryColor: Color(0xFFFF473F), fontFamily: 'WorkSan'),
+      // home: homepage(),
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
