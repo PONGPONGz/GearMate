@@ -100,7 +100,7 @@ class Inspection(InspectionBase):
 class MaintenanceScheduleBase(BaseModel):
     gear_id: int
     scheduled_date: Optional[date] = None
-
+    scheduled_time: Optional[time] = None
 
 class MaintenanceScheduleCreate(MaintenanceScheduleBase):
     pass

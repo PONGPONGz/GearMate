@@ -62,6 +62,7 @@ CREATE TABLE MaintenanceSchedule (
     id INT AUTO_INCREMENT PRIMARY KEY,
     gear_id INT,
     scheduled_date DATE,
+    scheduled_time TIME NOT NULL DEFAULT '00:00:00',
     FOREIGN KEY (gear_id) REFERENCES Gear(id)
 );
 
@@ -69,11 +70,13 @@ CREATE TABLE MaintenanceSchedule (
 CREATE TABLE MaintenanceReminder (
     id INT AUTO_INCREMENT PRIMARY KEY,
     gear_id INT,
+    schedule_id INT,
     reminder_date DATE,
-    reminder_time TIME,
+    reminder_time TIME NOT NULL DEFAULT '00:00:00',
     message VARCHAR(255),
     sent BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (gear_id) REFERENCES Gear(id)
+    FOREIGN KEY (gear_id) REFERENCES Gear(id),
+    FOREIGN KEY (schedule_id) REFERENCES MaintenanceSchedule(id)
 );
 
 
