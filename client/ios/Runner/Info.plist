@@ -52,5 +52,9 @@
 	</array>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>We use notifications to remind you to check and maintain your gear.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to the camera to take photos of gear equipment.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to the photo library to select photos of gear equipment.</string>
 </dict>
 </plist>

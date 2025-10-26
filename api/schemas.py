@@ -63,7 +63,6 @@ class GearBase(BaseModel):
     equipment_type: Optional[str] = None
     purchase_date: Optional[date] = None
     expiry_date: Optional[date] = None
-    status: Optional[str] = None
 
 
 class GearCreate(GearBase):
@@ -72,6 +71,7 @@ class GearCreate(GearBase):
 
 class Gear(GearBase):
     id: int
+    next_maintenance_date: Optional[date] = None
 
     class Config:
         orm_mode = True
@@ -100,7 +100,7 @@ class Inspection(InspectionBase):
 class MaintenanceScheduleBase(BaseModel):
     gear_id: int
     scheduled_date: Optional[date] = None
-
+    scheduled_time: Optional[time] = None
 
 class MaintenanceScheduleCreate(MaintenanceScheduleBase):
     pass
