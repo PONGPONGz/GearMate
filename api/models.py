@@ -56,7 +56,6 @@ class Gear(Base):
     equipment_type = Column(String(100))
     purchase_date = Column(Date)
     expiry_date = Column(Date)
-    status = Column(String(50))
 
     station = relationship("Station", back_populates="gears")
     inspections = relationship("Inspection", back_populates="gear")
