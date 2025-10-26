@@ -4,7 +4,7 @@ from typing import List
 import models
 import schemas
 from dependencies import get_db
-from datetime import date
+from datetime import date, time
 
 router = APIRouter(
     prefix="/schedules",
@@ -30,10 +30,27 @@ def create_schedule(schedule: schemas.MaintenanceScheduleCreate, db: Session = D
             detail="This gear already has a pending maintenance schedule. Complete or cancel it before adding another.",
         )
 
-    new_sched = models.MaintenanceSchedule(**schedule.dict())
+    new_sched = models.MaintenanceSchedule(
+        gear_id=schedule.gear_id,
+        scheduled_date=schedule.scheduled_date,
+        scheduled_time=schedule.scheduled_time or time(hour=0, minute=0)
+    )
     db.add(new_sched)
     db.commit()
     db.refresh(new_sched)
+    
+    new_reminder = models.MaintenanceReminder(
+        gear_id=new_sched.gear_id,
+        schedule_id=new_sched.id,
+        reminder_date=new_sched.scheduled_date,
+        reminder_time=new_sched.scheduled_time or time(hour=0, minute=0),
+        message=f"Maintenance scheduled for gear {new_sched.gear_id}",
+        sent=False
+    )
+    db.add(new_reminder)
+    db.commit()
+    db.refresh(new_reminder)
+
     return new_sched
 
 
