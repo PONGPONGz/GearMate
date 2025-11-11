@@ -41,7 +41,9 @@ class ServiceHistoryPage extends StatelessWidget {
           } else if (index == 1) {
             Navigator.pushNamed(context, '/report');
           } else if (index == 2) {
-            Navigator.pushNamed(context, '/addschedule');
+            Navigator.pushNamed(context, '/schedule');
+          } else if (index == 3) {
+            Navigator.pushNamed(context, '/servicehistory');
           }
         },
         items: const [

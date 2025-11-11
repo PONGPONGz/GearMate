@@ -71,22 +71,36 @@ class _HomepageState extends State<homepage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF6F6F6),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFFF6F6F6),
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
         currentIndex: 0,
-        selectedItemColor: Color(0xFFFF473F),
+        selectedItemColor: const Color(0xFFFF473F),
         unselectedItemColor: Colors.grey,
         onTap: (index) {
-          if (index == 1) {
+          if (index == 0) {
+            Navigator.pushNamed(context, '/');
+          } else if (index == 1) {
+            Navigator.pushNamed(context, '/report');
+          } else if (index == 2) {
             Navigator.pushNamed(context, '/schedule');
+          } else if (index == 3) {
+            Navigator.pushNamed(context, '/servicehistory');
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Gear'),
           BottomNavigationBarItem(
+            icon: Icon(Icons.error_outline),
+            label: 'Report',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: 'Schedule',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'History'),
         ],
       ),
       body: SafeArea(
