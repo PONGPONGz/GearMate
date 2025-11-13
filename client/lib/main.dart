@@ -6,6 +6,8 @@ import 'pages/homepage.dart';
 import 'add_maintenance_schedule_page.dart';
 import 'pages/AddNewGear.dart';
 import 'pages/HistoryPage.dart';
+import 'pages/damage_report_page.dart';
+import 'pages/inspection_log_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,6 +104,8 @@ class GearMateApp extends StatelessWidget {
         '/schedule': (context) => const AddMaintenanceSchedulePage(),
         '/addgear': (context) => addnewgearpage(),
         '/servicehistory': (context) => const ServiceHistoryPage(),
+        DamageReportPage.route: (_) => const DamageReportPage(),
+        InspectionLogPage.route: (_) => const InspectionLogPage(),
       },
       theme: ThemeData(
         useMaterial3: false,
