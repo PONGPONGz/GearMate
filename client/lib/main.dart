@@ -5,6 +5,7 @@ import 'data/reminder_api.dart';
 import 'pages/homepage.dart';
 import 'add_maintenance_schedule_page.dart';
 import 'pages/AddNewGear.dart';
+import 'pages/HistoryPage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,7 +93,6 @@ class GearMateApp extends StatelessWidget {
     const coral = Color(0xFFE85A4F);
     return MaterialApp(
       title: 'GearMate',
-
       // theme: ThemeData(primaryColor: Color(0xFFFF473F), fontFamily: 'WorkSan'),
       // home: homepage(),
       debugShowCheckedModeBanner: false,
@@ -101,6 +101,7 @@ class GearMateApp extends StatelessWidget {
         '/': (context) => homepage(),
         '/schedule': (context) => const AddMaintenanceSchedulePage(),
         '/addgear': (context) => addnewgearpage(),
+        '/servicehistory': (context) => const ServiceHistoryPage(),
       },
       theme: ThemeData(
         useMaterial3: false,

@@ -103,6 +103,8 @@ class _HomepageState extends State<homepage> {
           if (index == 1) {
             // Footer Schedule button opens the Add Maintenance Schedule page
             Navigator.pushNamed(context, '/schedule');
+          } else if (index == 2) {
+            Navigator.pushNamed(context, '/servicehistory');
           }
         },
         items: const [
@@ -111,6 +113,7 @@ class _HomepageState extends State<homepage> {
             icon: Icon(Icons.calendar_today),
             label: 'Schedule',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
         ],
       ),
       body: SafeArea(
