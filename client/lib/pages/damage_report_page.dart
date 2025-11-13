@@ -107,7 +107,7 @@ class _DamageReportPageState extends State<DamageReportPage> {
                 readOnly: true,
                 onTap: () => _pickDate(_reportDateCtrl),
                 decoration: const InputDecoration(
-                  hintText: 'Select  report date',
+                  hintText: 'Select report date',
                   suffixIcon: Icon(Icons.calendar_today_rounded),
                 ),
                 validator: (v) =>
