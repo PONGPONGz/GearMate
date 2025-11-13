@@ -5,7 +5,6 @@ from typing import List
 import models
 import schemas
 from dependencies import get_db
-import os
 import shutil
 from pathlib import Path
 import uuid
