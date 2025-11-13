@@ -5,6 +5,7 @@ from typing import List
 import models
 import schemas
 from dependencies import get_db
+import os
 import shutil
 from pathlib import Path
 import uuid
@@ -101,7 +102,7 @@ def get_gears(
         .group_by(models.MaintenanceSchedule.gear_id)
         .subquery()
     )
-    
+
     # Main query with left join to include maintenance dates
     query = (
         db.query(
@@ -131,10 +132,24 @@ def get_gears(
         )
 
     results = query.all()
-    
-    # Build response with next_maintenance_date included
+
+    # Build response with next_maintenance_date and next_maintenance_time included
     gears = []
-    for gear, next_maintenance in results:
+    for gear, next_maintenance_date in results:
+        # Always return a time string, default to '00:00' if not found
+        next_maintenance_time = '00:00'
+        if next_maintenance_date:
+            schedule = (
+                db.query(models.MaintenanceSchedule)
+                .filter(
+                    models.MaintenanceSchedule.gear_id == gear.id,
+                    models.MaintenanceSchedule.scheduled_date == next_maintenance_date
+                )
+                .order_by(models.MaintenanceSchedule.id.asc())
+                .first()
+            )
+            if schedule and schedule.scheduled_time:
+                next_maintenance_time = schedule.scheduled_time.strftime('%H:%M')
         gear_dict = {
             'id': gear.id,
             'station_id': gear.station_id,
@@ -144,8 +159,8 @@ def get_gears(
             'equipment_type': gear.equipment_type,
             'purchase_date': gear.purchase_date,
             'expiry_date': gear.expiry_date,
-            'next_maintenance_date': next_maintenance,
+            'next_maintenance_date': next_maintenance_date,
+            'next_maintenance_time': next_maintenance_time,
         }
         gears.append(gear_dict)
-    
     return gears
