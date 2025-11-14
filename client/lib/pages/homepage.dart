@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gear_mate/services/gear_api.dart';
 import 'dart:io' show Platform;
+import 'package:gear_mate/pages/damage_report_page.dart';
 
 class homepage extends StatefulWidget {
   @override
@@ -96,24 +97,27 @@ class _HomepageState extends State<homepage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: 0,
         selectedItemColor: Color(0xFFFF473F),
         unselectedItemColor: Colors.grey,
         onTap: (index) {
           if (index == 1) {
-            // Footer Schedule button opens the Add Maintenance Schedule page
-            Navigator.pushNamed(context, '/schedule');
+            Navigator.pushNamed(context, DamageReportPage.route);
           } else if (index == 2) {
+            Navigator.pushNamed(context, '/schedule');
+          } else if (index == 3) {
             Navigator.pushNamed(context, '/servicehistory');
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Gear'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Schedule',
+            icon: Icon(Icons.report_problem),
+            label: 'Report',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Schedule'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'History'),
         ],
       ),
       body: SafeArea(

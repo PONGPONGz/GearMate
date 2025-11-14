@@ -169,37 +169,32 @@ class _DamageReportPageState extends State<DamageReportPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).scaffoldBackgroundColor,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        side: const BorderSide(color: Colors.black26),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red, width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: _clear,
-                      child: const Text('Clear All'),
+                      child: const Text('Clear All', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).scaffoldBackgroundColor,
-                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
                         elevation: 0,
-                        side: const BorderSide(color: Colors.black26),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: _submit,
-                      child: const Text('Report Damage'),
+                      child: const Text('Report Damage', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -209,27 +204,29 @@ class _DamageReportPageState extends State<DamageReportPage> {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.build_outlined),
-            label: 'Gear',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.report_gmailerrorred_outlined),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 1,
+        selectedItemColor: Color(0xFFFF473F),
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pop(context);
+          } else if (index == 2) {
+            Navigator.pushNamed(context, '/schedule');
+          } else if (index == 3) {
+            Navigator.pushNamed(context, '/servicehistory');
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Gear'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report_problem),
             label: 'Report',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            label: 'Schedule',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.event_available_outlined),
-            label: 'Schedule',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Schedule'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'History'),
         ],
-        selectedIndex: 1,
-        backgroundColor: Colors.white,
       ),
     );
   }
