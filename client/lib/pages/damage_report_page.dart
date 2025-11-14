@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:gear_mate/services/damage_report_api.dart';
+import 'package:gear_mate/services/gear_api.dart';
 
 class DamageReportPage extends StatefulWidget {
   static const route = '/damage';
@@ -16,17 +18,45 @@ class _DamageReportPageState extends State<DamageReportPage> {
   final _reportDateCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  String? _gearId;
+  String? _selectedGearName;
+  int? _selectedGearId;
   String? _reporterId;
   File? _photo;
 
-  final _gears = const [
-    'Helmet A12',
-    'SCBA Tank 4',
-    'Nozzle 2-inch',
-    'Gloves – Pair 7',
+  List<Map<String, dynamic>> _gears = [];
+  bool _isLoadingGears = true;
+
+  final _reporters = const [
+    'Mark Johnson',
+    'Ton Danai',
+    'Minnie Aleenta',
+    'Sang Nuntaphop',
+    'P Pongpon',
+    'Pon Phonlaphat',
   ];
-  final _reporters = const ['1001', '1002', '1003'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGears();
+  }
+
+  Future<void> _loadGears() async {
+    try {
+      final gears = await GearApi.fetchGears('Name');
+      setState(() {
+        _gears = gears;
+        _isLoadingGears = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingGears = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load gears: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -59,25 +89,66 @@ class _DamageReportPageState extends State<DamageReportPage> {
     _reportDateCtrl.clear();
     _notesCtrl.clear();
     setState(() {
-      _gearId = null;
+      _selectedGearId = null;
+      _selectedGearName = null;
       _reporterId = null;
       _photo = null;
     });
   }
 
-  void _submit() {
+  void _submit() async {
     if (!(_form.currentState?.validate() ?? false)) return;
-    final payload = {
-      'gearId': _gearId,
-      'reportDate': _reportDateCtrl.text,
-      'reporterId': _reporterId,
-      'notes': _notesCtrl.text,
-      'hasPhoto': _photo != null,
-    };
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Damage reported $payload')));
-    _clear();
+    
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Use the selected gear ID from the dropdown
+      if (_selectedGearId == null) {
+        throw Exception('Please select a gear');
+      }
+
+      // Create damage report with reporter name
+      await DamageReportApi.createDamageReport(
+        gearId: _selectedGearId!,
+        reportDate: _reportDateCtrl.text,
+        reporterName: _reporterId, // Now sending the name directly
+        notes: _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
+        photoUrl: _photo != null ? _photo!.path : null,
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Damage report submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      _clear();
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -90,16 +161,31 @@ class _DamageReportPageState extends State<DamageReportPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const _Label('Gear ID'),
-              DropdownButtonFormField<String>(
-                value: _gearId,
-                items: _gears
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _gearId = v),
-                decoration: const InputDecoration(hintText: 'Select gear ID'),
-                validator: (v) => v == null ? 'Please select a gear' : null,
-              ),
+              const _Label('Gear'),
+              _isLoadingGears
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : DropdownButtonFormField<String>(
+                      value: _selectedGearName,
+                      items: _gears
+                          .map((gear) => DropdownMenuItem(
+                                value: gear['gear_name'] as String,
+                                child: Text('${gear['gear_name']} (${gear['equipment_type'] ?? ''})'),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedGearName = v;
+                          _selectedGearId = _gears.firstWhere(
+                            (gear) => gear['gear_name'] == v,
+                          )['id'] as int;
+                        });
+                      },
+                      decoration: const InputDecoration(hintText: 'Select gear'),
+                      validator: (v) => v == null ? 'Please select a gear' : null,
+                    ),
               const SizedBox(height: 16),
               const _Label('Report Date'),
               TextFormField(
@@ -114,7 +200,7 @@ class _DamageReportPageState extends State<DamageReportPage> {
                     (v == null || v.isEmpty) ? 'Please choose a date' : null,
               ),
               const SizedBox(height: 16),
-              const _Label('Reporter ID'),
+              const _Label('Reporter Name'),
               DropdownButtonFormField<String>(
                 value: _reporterId,
                 items: _reporters
@@ -122,7 +208,7 @@ class _DamageReportPageState extends State<DamageReportPage> {
                     .toList(),
                 onChanged: (v) => setState(() => _reporterId = v),
                 decoration: const InputDecoration(
-                  hintText: 'Select reporter ID',
+                  hintText: 'Select reporter name',
                 ),
                 validator: (v) => v == null ? 'Please select reporter' : null,
               ),

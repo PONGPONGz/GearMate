@@ -141,12 +141,19 @@ class DamageReportBase(BaseModel):
     status: Optional[str] = None
 
 
-class DamageReportCreate(DamageReportBase):
-    pass
+class DamageReportCreate(BaseModel):
+    gear_id: int
+    reporter_name: Optional[str] = None
+    report_date: Optional[date] = None
+    notes: Optional[str] = None
+    photo_url: Optional[str] = None
+    status: Optional[str] = None
 
 
 class DamageReport(DamageReportBase):
     id: int
+    gear_name: Optional[str] = None
+    reporter_name: Optional[str] = None
 
     class Config:
         orm_mode = True
