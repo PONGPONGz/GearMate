@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gear_mate/services/damage_report_api.dart';
 import 'package:gear_mate/services/gear_api.dart';
+import 'package:gear_mate/services/firefighter_api.dart';
 
 class DamageReportPage extends StatefulWidget {
   static const route = '/damage';
@@ -20,34 +21,22 @@ class _DamageReportPageState extends State<DamageReportPage> {
 
   String? _selectedGearName;
   int? _selectedGearId;
-  String? _reporterId;
   File? _photo;
 
+  String? _selectedReporterName;
   List<Map<String, dynamic>> _gears = [];
   bool _isLoadingGears = true;
 
-  final _reporters = const [
-    'Mark Johnson',
-    'Ton Danai',
-    'Minnie Aleenta',
-    'Sang Nuntaphop',
-    'P Pongpon',
-    'Pon Phonlaphat',
-  ];
+  List<Map<String, dynamic>> _reporters = [];
+  bool _isLoadingReporters = true;
 
-  final _reporterLabels = const {
-    'Mark Johnson': 'Mark Johnson (ID: 1001)',
-    'Ton Danai': 'Ton Danai (ID: 1002)',
-    'Minnie Aleenta': 'Minnie Aleenta (ID: 1003)',
-    'Sang Nuntaphop': 'Sang Nuntaphop (ID: 1004)',
-    'P Pongpon': 'P Pongpon (ID: 1005)',
-    'Pon Phonlaphat': 'Pon Phonlaphat (ID: 1006)',
-  };
+  
 
   @override
   void initState() {
     super.initState();
     _loadGears();
+    _loadReporters();
   }
 
   Future<void> _loadGears() async {
@@ -72,6 +61,23 @@ class _DamageReportPageState extends State<DamageReportPage> {
     _reportDateCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadReporters() async {
+    try {
+      final people = await FirefighterApi.fetchFirefighters();
+      setState(() {
+        _reporters = people;
+        _isLoadingReporters = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingReporters = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load reporters: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _pickDate(TextEditingController ctrl) async {
@@ -100,7 +106,7 @@ class _DamageReportPageState extends State<DamageReportPage> {
     setState(() {
       _selectedGearId = null;
       _selectedGearName = null;
-      _reporterId = null;
+      _selectedReporterName = null;
       _photo = null;
     });
   }
@@ -125,7 +131,7 @@ class _DamageReportPageState extends State<DamageReportPage> {
       await DamageReportApi.createDamageReport(
         gearId: _selectedGearId!,
         reportDate: _reportDateCtrl.text,
-        reporterName: _reporterId, // Now sending the name directly
+        reporterName: _selectedReporterName, // Send the name; API resolves to ID
         notes: _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
         photoUrl: _photo != null ? _photo!.path : null,
       );
@@ -200,6 +206,35 @@ class _DamageReportPageState extends State<DamageReportPage> {
                       validator: (v) => v == null ? 'Please select a gear' : null,
                     ),
               const SizedBox(height: 16),
+              const _Label('Reporter'),
+              _isLoadingReporters
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : DropdownButtonFormField<String>(
+                      value: _selectedReporterName,
+                      isExpanded: true,
+                      items: _reporters
+                          .map((p) => DropdownMenuItem(
+                                value: p['name'] as String,
+                                child: Text(
+                                  'ID ${p['id']} - ${p['name']}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedReporterName = v;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Select reporter',
+                      ),
+                      validator: (v) => v == null ? 'Please select reporter' : null,
+                    ),
+              const SizedBox(height: 16),
               const _Label('Report Date'),
               TextFormField(
                 controller: _reportDateCtrl,
@@ -211,26 +246,6 @@ class _DamageReportPageState extends State<DamageReportPage> {
                 ),
                 validator: (v) =>
                     (v == null || v.isEmpty) ? 'Please choose a date' : null,
-              ),
-              const SizedBox(height: 16),
-              const _Label('Reporter Name'),
-              DropdownButtonFormField<String>(
-                value: _reporterId,
-                isExpanded: true,
-                items: _reporters
-                    .map((name) => DropdownMenuItem(
-                          value: name,
-                          child: Text(
-                            _reporterLabels[name] ?? name,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _reporterId = v),
-                decoration: const InputDecoration(
-                  hintText: 'Select reporter name',
-                ),
-                validator: (v) => v == null ? 'Please select reporter' : null,
               ),
               const SizedBox(height: 16),
               const _Label('Notes'),

@@ -1,32 +1,83 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import 'package:gear_mate/pages/damage_report_page.dart';
+import 'package:gear_mate/pages/inspection_log_page.dart';
+import 'package:gear_mate/services/inspection_api.dart';
+import 'package:gear_mate/services/gear_api.dart';
+import 'package:gear_mate/services/firefighter_api.dart';
+import 'package:intl/intl.dart';
 
-class ServiceHistoryPage extends StatelessWidget {
+class ServiceHistoryPage extends StatefulWidget {
   const ServiceHistoryPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final serviceList = [
-      {
-        'status1': 'Passed',
-        'status2': 'Routine',
-        'title': 'Fire Helmet',
-        'id': 'FH-001 | Inspector 2',
-        'date': 'Fri, 10 October 2025',
-        'notes': 'Helmet clean and secure',
-        'image': 'assets/images/FireHelmet.jpeg',
-      },
-      {
-        'status1': 'Needs Repair',
-        'status2': 'Repair',
-        'title': 'Oxygen Tank',
-        'id': 'OT-002 | Inspector 2',
-        'date': 'Sun, 12 October 2025',
-        'notes': 'Oxygen value leaking',
-        'image': 'assets/images/OxygenTank.jpeg',
-      },
-    ];
+  State<ServiceHistoryPage> createState() => _ServiceHistoryPageState();
+}
 
+class _ServiceHistoryPageState extends State<ServiceHistoryPage> {
+  List<Map<String, dynamic>> _inspections = [];
+  bool _isLoading = true;
+  String? _error;
+  List<Map<String, dynamic>> _gears = [];
+  List<Map<String, dynamic>> _firefighters = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInspections();
+    _loadGears();
+    _loadFirefighters();
+  }
+
+  Future<void> _loadInspections() async {
+    try {
+      final inspections = await InspectionApi.getInspections();
+      setState(() {
+        _inspections = inspections;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'N/A';
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('EEE, dd MMMM yyyy').format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  Future<void> _loadGears() async {
+    try {
+      final gears = await GearApi.fetchGears('Name');
+      setState(() {
+        _gears = gears;
+      });
+    } catch (e) {
+      // Silently ignore; cards fallback without image
+    }
+  }
+
+  Future<void> _loadFirefighters() async {
+    try {
+      final people = await FirefighterApi.fetchFirefighters();
+      setState(() {
+        _firefighters = people;
+      });
+    } catch (e) {
+      // Ignore for now; we'll show ID when name unavailable
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
       bottomNavigationBar: BottomNavigationBar(
@@ -90,7 +141,12 @@ class ServiceHistoryPage extends StatelessWidget {
                     ),
                     elevation: 4,
                   ),
-                  onPressed: () {},
+                  onPressed: () async {
+                    final result = await Navigator.pushNamed(context, InspectionLogPage.route);
+                    if (result == true) {
+                      _loadInspections(); // Refresh list after adding inspection
+                    }
+                  },
                   icon: const Icon(Icons.add, color: Colors.white),
                   label: const Text(
                     'Repair & Inspection',
@@ -103,112 +159,123 @@ class ServiceHistoryPage extends StatelessWidget {
               ),
             ),
 
-            // List of service cards
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: serviceList.length,
-                itemBuilder: (context, index) {
-                  final item = serviceList[index];
-                  return Card(
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+            // Loading indicator
+            if (_isLoading)
+              const Expanded(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+
+            // Error message
+            if (_error != null)
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Error: $_error',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
                     ),
-                    elevation: 3,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    _buildStatusChip(
-                                      item['status1']!,
-                                      item['status1'] == 'Passed'
-                                          ? Colors.green[100]!
-                                          : Colors.red[100]!,
-                                      item['status1'] == 'Passed'
-                                          ? Colors.green
-                                          : Colors.redAccent,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _buildStatusChip(
-                                      item['status2']!,
-                                      Colors.blue[100]!,
-                                      Colors.blue,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  item['title']!,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Text(
-                                  item['id']!,
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                  ),
+                ),
+              ),
+
+            // List of service cards
+            if (!_isLoading && _error == null)
+              Expanded(
+                child: _inspections.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No inspections yet.\nAdd your first inspection!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: _inspections.length,
+                        itemBuilder: (context, index) {
+                          final item = _inspections[index];
+                          final gear = _gears.firstWhere(
+                            (g) => g['id'] == item['gear_id'],
+                            orElse: () => <String, dynamic>{},
+                          );
+                          final photoUrl = gear['photo_url'] as String?;
+                          final inspector = _firefighters.firstWhere(
+                            (f) => f['id'] == item['inspector_id'],
+                            orElse: () => <String, dynamic>{},
+                          );
+                          final inspectorName = inspector['name'] as String?;
+                          return Card(
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 3,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Inspection Date',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                        Text(
-                                          item['date']!,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ],
+                                  Row(
+                                    children: [
+                                      _buildStatusChip(
+                                        item['result'] ?? 'Pending',
+                                        (item['result'] ?? 'Pending') == 'Passed'
+                                            ? Colors.green[100]!
+                                            : Colors.orange[100]!,
+                                        (item['result'] ?? 'Pending') == 'Passed'
+                                            ? Colors.green
+                                            : Colors.orange,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildStatusChip(
+                                        item['inspection_type'] ?? 'General',
+                                        Colors.blue[100]!,
+                                        Colors.blue,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Gear ID: ${item['gear_id']}${gear['gear_name'] != null ? ' | ${gear['gear_name']}' : ''}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(
-                                      Icons.edit_note_outlined,
-                                      size: 22,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Column(
+                                  ),
+                                      Text(
+                                        inspectorName != null
+                                            ? 'Inspector: ID ${item['inspector_id']} - $inspectorName'
+                                            : 'Inspector ID: ${item['inspector_id'] ?? 'N/A'}',
+                                        style: TextStyle(color: Colors.grey[600]),
+                                      ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           const Text(
-                                            'Condition Notes',
+                                            'Inspection Date',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.black87,
                                             ),
                                           ),
                                           Text(
-                                            item['notes']!,
+                                            _formatDate(item['inspection_date']),
                                             style: const TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey,
@@ -216,32 +283,99 @@ class ServiceHistoryPage extends StatelessWidget {
                                           ),
                                         ],
                                       ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (item['condition_notes'] != null &&
+                                      (item['condition_notes'] as String).isNotEmpty)
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Icon(
+                                          Icons.edit_note_outlined,
+                                          size: 22,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'Condition Notes',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              Text(
+                                                item['condition_notes'] ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ],
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: _buildGearImage(photoUrl),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              item['image']!,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  );
-                },
               ),
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildGearImage(String? url) {
+    if (url == null || url.isEmpty) {
+      return Container(
+        width: 80,
+        height: 80,
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      );
+    }
+    // If backend returned relative path like /uploads/gears/xxx.jpg, prepend base
+    String resolved = url;
+    if (url.startsWith('/')) {
+      final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
+      resolved = 'http://$host:8000$url';
+    }
+    if (resolved.startsWith('http')) {
+      return Image.network(
+        resolved,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: 80,
+          height: 80,
+          color: Colors.grey[200],
+          child: const Icon(Icons.broken_image, color: Colors.redAccent),
+        ),
+      );
+    }
+    // Treat as asset path
+    return Image.asset(
+      resolved,
+      width: 80,
+      height: 80,
+      fit: BoxFit.cover,
     );
   }
 
