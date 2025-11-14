@@ -35,6 +35,15 @@ class _DamageReportPageState extends State<DamageReportPage> {
     'Pon Phonlaphat',
   ];
 
+  final _reporterLabels = const {
+    'Mark Johnson': 'Mark Johnson (ID: 1001)',
+    'Ton Danai': 'Ton Danai (ID: 1002)',
+    'Minnie Aleenta': 'Minnie Aleenta (ID: 1003)',
+    'Sang Nuntaphop': 'Sang Nuntaphop (ID: 1004)',
+    'P Pongpon': 'P Pongpon (ID: 1005)',
+    'Pon Phonlaphat': 'Pon Phonlaphat (ID: 1006)',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -169,10 +178,14 @@ class _DamageReportPageState extends State<DamageReportPage> {
                     )
                   : DropdownButtonFormField<String>(
                       value: _selectedGearName,
+                      isExpanded: true,
                       items: _gears
                           .map((gear) => DropdownMenuItem(
                                 value: gear['gear_name'] as String,
-                                child: Text('${gear['gear_name']} (${gear['equipment_type'] ?? ''})'),
+                                child: Text(
+                                  'ID ${gear['id']} - ${gear['gear_name']}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ))
                           .toList(),
                       onChanged: (v) {
@@ -203,8 +216,15 @@ class _DamageReportPageState extends State<DamageReportPage> {
               const _Label('Reporter Name'),
               DropdownButtonFormField<String>(
                 value: _reporterId,
+                isExpanded: true,
                 items: _reporters
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map((name) => DropdownMenuItem(
+                          value: name,
+                          child: Text(
+                            _reporterLabels[name] ?? name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) => setState(() => _reporterId = v),
                 decoration: const InputDecoration(
