@@ -16,11 +16,15 @@ Future<void> main() async {
   // ===================================================
   // REAL DAILY REMINDER (08:00 Bangkok)
   // ===================================================
-  await NotificationService.instance.scheduleDailyMorning(
-    hour: 8,
-    minute: 0,
-    body: "Don't forget to check your gear and maintenance schedule!",
-  );
+  try {
+    await NotificationService.instance.scheduleDailyMorning(
+      hour: 8,
+      minute: 0,
+      body: "Don't forget to check your gear and maintenance schedule!",
+    );
+  } catch (e) {
+    debugPrint('Failed to schedule daily reminder (may need exact alarm permission): $e');
+  }
 
   // ===================================================
   // REAL DB REMINDERS
@@ -73,12 +77,16 @@ Future<void> main() async {
       }
 
       debugPrint('Schedule reminder id=${r.id} at $whenLocal');
-      await NotificationService.instance.scheduleOneShot(
-        id: baseId + r.id,
-        whenLocal: whenLocal,
-        title: 'Maintenance Reminder',
-        body: r.message ?? 'Scheduled maintenance reminder',
-      );
+      try {
+        await NotificationService.instance.scheduleOneShot(
+          id: baseId + r.id,
+          whenLocal: whenLocal,
+          title: 'Maintenance Reminder',
+          body: r.message ?? 'Scheduled maintenance reminder',
+        );
+      } catch (e) {
+        debugPrint('Failed to schedule reminder id=${r.id}: $e');
+      }
     }
   } catch (e) {
     debugPrint('Failed to fetch/schedule DB reminders: $e');
