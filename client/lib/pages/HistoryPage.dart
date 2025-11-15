@@ -32,8 +32,12 @@ class _ServiceHistoryPageState extends State<ServiceHistoryPage> {
   Future<void> _loadInspections() async {
     try {
       final inspections = await InspectionApi.getInspections();
+      // Filter out inspections with "Passed" result
+      final filteredInspections = inspections
+          .where((inspection) => inspection['result'] != 'Passed')
+          .toList();
       setState(() {
-        _inspections = inspections;
+        _inspections = filteredInspections;
         _isLoading = false;
       });
     } catch (e) {
