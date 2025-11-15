@@ -1,5 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:gear_mate/services/gear_api.dart';
+import 'package:gear_mate/services/firefighter_api.dart';
+import 'package:gear_mate/services/inspection_api.dart';
 
 class InspectionLogPage extends StatefulWidget {
   static const route = '/inspection';
@@ -14,23 +17,63 @@ class _InspectionLogPageState extends State<InspectionLogPage> {
   final _dateCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
-  String? _gearId;
-  String? _inspectorId;
+  int? _selectedGearId;
+  String? _selectedGearName;
+  int? _selectedInspectorId;
+  String? _selectedInspectorName;
   String? _inspectionType;
 
-  final _gears = const [
-    'Helmet A12',
-    'SCBA Tank 4',
-    'Nozzle 2-inch',
-    'Gloves – Pair 7',
-  ];
-  final _inspectors = const ['2001', '2002', '2003'];
+  List<Map<String, dynamic>> _gears = [];
+  bool _isLoadingGears = true;
+  List<Map<String, dynamic>> _inspectors = [];
+  bool _isLoadingInspectors = true;
   final _types = const [
     'Routine',
     'Post-Repair',
     'Safety Recall',
     'Deep Clean',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGears();
+    _loadInspectors();
+  }
+
+  Future<void> _loadGears() async {
+    try {
+      final gears = await GearApi.fetchGears('Name');
+      setState(() {
+        _gears = gears;
+        _isLoadingGears = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingGears = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load gears: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadInspectors() async {
+    try {
+      final people = await FirefighterApi.fetchFirefighters();
+      setState(() {
+        _inspectors = people;
+        _isLoadingInspectors = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingInspectors = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load inspectors: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -58,25 +101,72 @@ class _InspectionLogPageState extends State<InspectionLogPage> {
     _dateCtrl.clear();
     _notesCtrl.clear();
     setState(() {
-      _gearId = null;
-      _inspectorId = null;
+      _selectedGearId = null;
+      _selectedGearName = null;
+      _selectedInspectorId = null;
+      _selectedInspectorName = null;
       _inspectionType = null;
     });
   }
 
-  void _submit() {
+  void _submit() async {
     if (!(_form.currentState?.validate() ?? false)) return;
-    final payload = {
-      'gearId': _gearId,
-      'inspectionDate': _dateCtrl.text,
-      'inspectorId': _inspectorId,
-      'inspectionType': _inspectionType,
-      'notes': _notesCtrl.text,
-    };
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Inspection submitted $payload')));
-    _clear();
+    
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Validate required fields
+      if (_selectedGearId == null) {
+        throw Exception('Please select a gear');
+      }
+      if (_selectedInspectorId == null) {
+        throw Exception('Please select an inspector');
+      }
+
+      // Create inspection
+      await InspectionApi.createInspection(
+        gearId: _selectedGearId!,
+        inspectionDate: _dateCtrl.text,
+        inspectorId: _selectedInspectorId,
+        inspectionType: _inspectionType,
+        conditionNotes: _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
+        result: 'Pending', // Default result
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Inspection submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Pop back to history page and signal refresh
+        Navigator.pop(context, true);
+      }
+      // No need to clear after successful submit; page will close.
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -95,16 +185,35 @@ class _InspectionLogPageState extends State<InspectionLogPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const _Label('Gear ID'),
-              DropdownButtonFormField<String>(
-                value: _gearId,
-                items: _gears
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _gearId = v),
-                decoration: const InputDecoration(hintText: 'Select gear ID'),
-                validator: (v) => v == null ? 'Please select a gear' : null,
-              ),
+              const _Label('Gear'),
+              _isLoadingGears
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : DropdownButtonFormField<String>(
+                      value: _selectedGearName,
+                      isExpanded: true,
+                      items: _gears
+                          .map((gear) => DropdownMenuItem(
+                                value: gear['gear_name'] as String,
+                                child: Text(
+                                  'ID ${gear['id']} - ${gear['gear_name']}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedGearName = v;
+                          _selectedGearId = _gears.firstWhere(
+                            (g) => g['gear_name'] == v,
+                          )['id'] as int;
+                        });
+                      },
+                      decoration: const InputDecoration(hintText: 'Select gear'),
+                      validator: (v) => v == null ? 'Please select a gear' : null,
+                    ),
               const SizedBox(height: 16),
               const _Label('Inspection Date'),
               TextFormField(
@@ -119,18 +228,37 @@ class _InspectionLogPageState extends State<InspectionLogPage> {
                     (v == null || v.isEmpty) ? 'Please choose a date' : null,
               ),
               const SizedBox(height: 16),
-              const _Label('Inspector ID'),
-              DropdownButtonFormField<String>(
-                value: _inspectorId,
-                items: _inspectors
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _inspectorId = v),
-                decoration: const InputDecoration(
-                  hintText: 'Select inspector ID',
-                ),
-                validator: (v) => v == null ? 'Please select inspector' : null,
-              ),
+              const _Label('Inspector'),
+              _isLoadingInspectors
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : DropdownButtonFormField<String>(
+                      value: _selectedInspectorName,
+                      isExpanded: true,
+                      items: _inspectors
+                          .map((p) => DropdownMenuItem(
+                                value: p['name'] as String,
+                                child: Text(
+                                  'ID ${p['id']} - ${p['name']}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedInspectorName = v;
+                          _selectedInspectorId = _inspectors.firstWhere(
+                            (p) => p['name'] == v,
+                          )['id'] as int;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Select inspector',
+                      ),
+                      validator: (v) => v == null ? 'Please select inspector' : null,
+                    ),
               const SizedBox(height: 16),
               const _Label('Inspection Type'),
               DropdownButtonFormField<String>(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gear_mate/pages/gearpage/gear_page.dart';
-import 'package:gear_mate/pages/schedulepage/schedule_page.dart';
+// Fixed imports: use existing homepage (gear list) and schedule page widgets
+import 'package:gear_mate/pages/homepage.dart';
+import 'package:gear_mate/pages/SchedulePage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,7 +19,8 @@ class _HomeSwitcherState extends State<HomePage> {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [GearPage(), SchedulePage()],
+        // Use the actual widget classes present in the project.
+        children: [homepage(), schedulepage()],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
