@@ -110,4 +110,6 @@ cd client
 ### Run all integration tests
 ```bash
 flutter test integration_test/
+# For disable notification
+flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
 ```
