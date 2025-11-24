@@ -83,3 +83,31 @@ flutter run
 
 - **Backend README**: See `api/README.md` for detailed API documentation
 - **Frontend README**: See `client/README.md` for Flutter development guide
+
+### Testing
+
+## 1. unitTest
+
+### Enter venv environment
+```bash
+cd api
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cd ..
+```
+
+### Perform unit test
+```bash
+pytest unitTest/unitTest -v
+pytest unitTest/unitTest -v --cov=. --cov-report=term-missing --cov-report=html:htmlcov
+```
+
+## 2. Auto-test
+### Test on client site
+```bash
+cd client
+```
+### Run all integration tests
+```bash
+flutter test integration_test/
+```

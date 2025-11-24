@@ -63,14 +63,14 @@ pip install -r requirements-dev.txt
 
 ### Run All Unit Tests
 ```bash
-pytest "unit test/" -v
+pytest "unitTest/" -v
 ```
 
 ### Run Specific Test Suite
 ```bash
-pytest "unit test/test_firefighters.py" -v
-pytest "unit test/test_inspections.py" -v
-pytest "unit test/test_stations.py" -v
+pytest "unitTest/test_firefighters.py" -v
+pytest "unitTest/test_inspections.py" -v
+pytest "unitTest/test_stations.py" -v
 ```
 
 ### Generate Coverage Report
@@ -114,3 +114,16 @@ According to project requirements:
 - Focus on testing individual methods and functions
 - Independent of system/integration tests
 - Can run quickly and in isolation
+
+
+## Notes For Updated test (Window env)
+Enter venv environment
+```bash
+cd api
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cd ..
+
+pytest unitTest/unitTest -v
+pytest unitTest/unitTest -v --cov=. --cov-report=term-missing --cov-report=html:htmlcov
+```
