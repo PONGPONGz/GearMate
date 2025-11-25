@@ -1,373 +1,505 @@
 """
-Unit Test Suite 2: Inspections Router Tests
-Tests for /inspections endpoints including create and get operations
+Inspections Router Tests
+Tests for /inspections endpoints using Base Choice Coverage ISP
 
 Testing Strategy:
-- Boundary value analysis for dates
-- Logic coverage for result status validation
-- Input Space Partitioning for optional fields
+- Base Choice Input Space Partitioning (ISP)
+- 1 Base test with typical/valid values
+- Variations testing one parameter change at a time
+- Focuses on realistic failure scenarios
+- Uses FastAPI TestClient for real HTTP requests
+
+Total Test Cases: 17 (1 base + 16 variations)
+
+Base Choice Coverage - Selected Characteristics:
+1. gear_id (required field)
+   - Base: Valid positive integer (1)
+   - Variations: None, Non-existent FK, Negative
+
+2. inspection_date (optional field)
+   - Base: Valid date string '2025-11-20'
+   - Variations: None, Past date, Future date
+
+3. inspector_id (optional field, FK to firefighter)
+   - Base: Valid positive integer (1)
+   - Variations: None, Non-existent FK, Negative
+
+4. inspection_type (optional field)
+   - Base: 'Annual'
+   - Variations: None, Various types (Annual, Monthly)
+
+5. condition_notes (optional text field)
+   - Base: Normal text 'Equipment in good condition'
+   - Variations: None, Empty string, text
+
+6. result (optional field)
+   - Base: 'Pass'
+   - Variations: None, Various statuses (Pass, Fail, Needs Repair, Retired)
 """
 import pytest
-from datetime import date, timedelta
+import sys
+from pathlib import Path
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+# Add api directory to path
+api_path = Path(__file__).parent.parent.parent / "api"
+sys.path.insert(0, str(api_path))
+
+from main import app
+from database import Base
+from dependencies import get_db
+import models
+
+# Test database setup
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_inspections.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-class TestInspectionURLConstruction:
-    """Test suite for inspection endpoint URLs"""
-
-    def test_base_url_format(self):
-        """Test inspection base URL format"""
-        base_url = "/inspections"
-        assert base_url == "/inspections"
-        assert base_url.startswith("/")
-
-    def test_create_endpoint_url(self):
-        """Test POST endpoint URL"""
-        create_url = "/inspections/"
-        assert create_url.endswith("/")
-
-    def test_list_endpoint_url(self):
-        """Test GET endpoint for listing inspections"""
-        list_url = "/inspections/"
-        assert list_url == "/inspections/"
+def override_get_db():
+    """Override database dependency for testing"""
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
 
 
-class TestInspectionResponseSchema:
-    """Test suite for inspection response structure"""
+app.dependency_overrides[get_db] = override_get_db
+client = TestClient(app)
 
-    def test_complete_response_structure(self):
-        """Test response contains all expected fields"""
-        expected_fields = ['id', 'gear_id', 'inspection_date', 'inspector_id', 
-                          'inspection_type', 'condition_notes', 'result']
-        
-        mock_response = {
-            'id': 1,
-            'gear_id': 5,
+
+@pytest.fixture(scope="function")
+def test_db():
+    """Create fresh database for each test"""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(scope="function")
+def test_db_with_dependencies():
+    """Create fresh database with department, station, firefighter, and gear for FK tests"""
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    
+    # Create test department
+    dept = models.Department(department_name="Test Department", location="Test Location")
+    db.add(dept)
+    db.commit()
+    db.refresh(dept)
+    
+    # Create test station
+    station = models.Station(name="Test Station", location="Test Location", department_id=dept.id)
+    db.add(station)
+    db.commit()
+    db.refresh(station)
+    
+    # Create test firefighter (inspector)
+    firefighter = models.Firefighter(
+        name="Test Inspector", 
+        ranks="Captain",
+        station_id=station.id,
+        department_id=dept.id
+    )
+    db.add(firefighter)
+    db.commit()
+    db.refresh(firefighter)
+    
+    # Create test gear
+    gear = models.Gear(
+        station_id=station.id,
+        gear_name="Test Gear",
+        serial_number="SN-12345",
+        equipment_type="SCBA"
+    )
+    db.add(gear)
+    db.commit()
+    db.refresh(gear)
+    
+    db.close()
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
+class TestInspectionPostEndpoint:
+    """Base Choice Coverage tests for POST /inspections endpoint"""
+
+    # BASE TEST: All valid typical values
+    def test_base_all_valid_values(self, test_db_with_dependencies):
+        """Base test: Valid inspection with all fields populated with typical values"""
+        payload = {
+            'gear_id': 1,
             'inspection_date': '2025-11-20',
-            'inspector_id': 10,
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+
+    # GEAR_ID VARIATIONS (3 tests)
+    def test_gear_id_none(self, test_db_with_dependencies):
+        """Variation: gear_id is None (should fail as required field)"""
+        payload = {
+            'gear_id': None,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        # None for required field should fail validation
+        assert response.status_code == 422
+
+    def test_gear_id_non_existent(self, test_db_with_dependencies):
+        """Variation: gear_id references non-existent gear (FK violation)"""
+        payload = {
+            'gear_id': 9999,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        # Foreign key violation should result in 500 error (SQLite behavior)
+        assert response.status_code == 500
+
+    def test_gear_id_negative(self, test_db_with_dependencies):
+        """Variation: gear_id is negative (invalid value)"""
+        payload = {
+            'gear_id': -1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        # Negative ID should cause FK violation
+        assert response.status_code == 500
+
+    # INSPECTION_DATE VARIATIONS (3 tests)
+    def test_inspection_date_none(self, test_db_with_dependencies):
+        """Variation: inspection_date is None (optional field)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': None,
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['inspection_date'] is None
+
+    def test_inspection_date_past(self, test_db_with_dependencies):
+        """Variation: inspection_date in the past"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2020-01-15',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['inspection_date'] == '2020-01-15'
+
+    def test_inspection_date_future(self, test_db_with_dependencies):
+        """Variation: inspection_date in the future (scheduled inspection)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2026-12-31',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['inspection_date'] == '2026-12-31'
+
+    # INSPECTOR_ID VARIATIONS (3 tests)
+    def test_inspector_id_none(self, test_db_with_dependencies):
+        """Variation: inspector_id is None (optional field)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': None,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['inspector_id'] is None
+
+    def test_inspector_id_non_existent(self, test_db_with_dependencies):
+        """Variation: inspector_id references non-existent firefighter (FK violation)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 9999,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        # Foreign key violation should result in 500 error
+        assert response.status_code == 500
+
+    def test_inspector_id_negative(self, test_db_with_dependencies):
+        """Variation: inspector_id is negative (invalid value)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': -1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        # Negative ID should cause FK violation
+        assert response.status_code == 500
+
+    # INSPECTION_TYPE VARIATIONS (2 tests)
+    def test_inspection_type_none(self, test_db_with_dependencies):
+        """Variation: inspection_type is None (optional field)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': None,
+            'condition_notes': 'Equipment in good condition',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['inspection_type'] is None
+
+    def test_inspection_type_various_types(self, test_db_with_dependencies):
+        """Variation: inspection_type with different common types"""
+        inspection_types = ['Annual', 'Monthly']
+        
+        for i, insp_type in enumerate(inspection_types):
+            payload = {
+                'gear_id': 1,
+                'inspection_date': '2025-11-20',
+                'inspector_id': 1,
+                'inspection_type': insp_type,
+                'condition_notes': 'Equipment in good condition',
+                'result': 'Pass'
+            }
+            
+            response = client.post("/inspections/", json=payload)
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data['inspection_type'] == insp_type
+
+    # CONDITION_NOTES VARIATIONS (3 tests)
+    def test_condition_notes_none(self, test_db_with_dependencies):
+        """Variation: condition_notes is None (optional field)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': None,
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['condition_notes'] is None
+
+    def test_condition_notes_empty_string(self, test_db_with_dependencies):
+        """Variation: condition_notes is empty string"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': '',
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['condition_notes'] == ''
+
+    def test_condition_notes_long_text(self, test_db_with_dependencies):
+        """Variation: condition_notes with long text and special characters"""
+        long_notes = "Equipment inspected thoroughly.\n" * 50 + "Pressure: 100 PSI\nTemp: 72°F"
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': long_notes,
+            'result': 'Pass'
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['condition_notes'] == long_notes
+
+    # RESULT VARIATIONS (2 tests)
+    def test_result_none(self, test_db_with_dependencies):
+        """Variation: result is None (optional field)"""
+        payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
+            'inspection_type': 'Annual',
+            'condition_notes': 'Equipment in good condition',
+            'result': None
+        }
+        
+        response = client.post("/inspections/", json=payload)
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['result'] is None
+
+    def test_result_various_statuses(self, test_db_with_dependencies):
+        """Variation: result with different status values"""
+        result_statuses = ['Pass', 'Fail', 'Needs Repair', 'Retired']
+        
+        for i, result_status in enumerate(result_statuses):
+            payload = {
+                'gear_id': 1,
+                'inspection_date': '2025-11-20',
+                'inspector_id': 1,
+                'inspection_type': 'Annual',
+                'condition_notes': 'Equipment in good condition',
+                'result': result_status
+            }
+            
+            response = client.post("/inspections/", json=payload)
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data['result'] == result_status
+
+
+class TestInspectionGetEndpoint:
+    """Base Choice Coverage tests for GET /inspections endpoint"""
+
+    def test_get_empty_database(self, test_db):
+        """Database state: No inspections exist (empty list)"""
+        response = client.get("/inspections/")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+
+    def test_get_single_inspection(self, test_db_with_dependencies):
+        """Database state: Single inspection exists"""
+        # Create an inspection
+        create_payload = {
+            'gear_id': 1,
+            'inspection_date': '2025-11-20',
+            'inspector_id': 1,
             'inspection_type': 'Annual',
             'condition_notes': 'Good condition',
             'result': 'Pass'
         }
+        client.post("/inspections/", json=create_payload)
         
-        for field in expected_fields:
-            assert field in mock_response
+        # Get all inspections
+        response = client.get("/inspections/")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert 'id' in data[0]
+        assert data[0]['gear_id'] == 1
 
-    def test_minimal_response_structure(self):
-        """Test response with only required field (gear_id)"""
-        minimal_response = {
-            'id': 1,
-            'gear_id': 5,
+    def test_get_multiple_inspections(self, test_db_with_dependencies):
+        """Database state: Multiple inspections exist"""
+        inspections = [
+            {'gear_id': 1, 'inspection_date': '2025-11-20', 'inspector_id': 1, 'result': 'Pass'},
+            {'gear_id': 1, 'inspection_date': '2025-10-15', 'inspector_id': 1, 'result': 'Pass'},
+            {'gear_id': 1, 'inspection_date': '2025-09-10', 'inspector_id': 1, 'result': 'Fail'}
+        ]
+        
+        for insp in inspections:
+            client.post("/inspections/", json=insp)
+        
+        response = client.get("/inspections/")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        assert all('id' in insp for insp in data)
+
+    def test_get_inspections_with_null_fields(self, test_db_with_dependencies):
+        """Database state: Inspections with optional fields as None"""
+        payload = {
+            'gear_id': 1,
             'inspection_date': None,
             'inspector_id': None,
             'inspection_type': None,
             'condition_notes': None,
             'result': None
         }
+        client.post("/inspections/", json=payload)
         
-        assert 'gear_id' in minimal_response
-        assert minimal_response['gear_id'] is not None
-        assert isinstance(minimal_response['gear_id'], int)
-
-    def test_response_field_types(self):
-        """Test response fields have correct data types"""
-        response = {
-            'id': 1,
-            'gear_id': 5,
-            'inspection_date': '2025-11-20',
-            'inspector_id': 10,
-            'inspection_type': 'Annual',
-            'condition_notes': 'All systems operational',
-            'result': 'Pass'
-        }
+        response = client.get("/inspections/")
         
-        assert isinstance(response['id'], int)
-        assert isinstance(response['gear_id'], int)
-        assert isinstance(response['inspection_date'], str) or response['inspection_date'] is None
-        assert isinstance(response['inspector_id'], int) or response['inspector_id'] is None
-        assert isinstance(response['inspection_type'], str) or response['inspection_type'] is None
-
-
-class TestInspectionCreatePayload:
-    """Test suite for inspection creation payload validation"""
-
-    def test_required_field_only(self):
-        """Test payload with only required field (gear_id)"""
-        payload = {'gear_id': 5}
-        
-        assert 'gear_id' in payload
-        assert isinstance(payload['gear_id'], int)
-        assert payload['gear_id'] > 0
-
-    def test_complete_payload(self):
-        """Test payload with all fields"""
-        payload = {
-            'gear_id': 5,
-            'inspection_date': '2025-11-20',
-            'inspector_id': 10,
-            'inspection_type': 'Annual',
-            'condition_notes': 'Equipment in good working order',
-            'result': 'Pass'
-        }
-        
-        assert len(payload) == 6
-        assert all(key in payload for key in ['gear_id', 'inspection_date', 'inspector_id', 
-                                               'inspection_type', 'condition_notes', 'result'])
-
-    def test_partial_payload(self):
-        """Test payload with some optional fields"""
-        payload = {
-            'gear_id': 5,
-            'inspection_date': '2025-11-20',
-            'result': 'Pass'
-        }
-        
-        assert 'gear_id' in payload
-        assert 'inspection_date' in payload
-        assert 'inspector_id' not in payload
-
-
-class TestInspectionDataValidation:
-    """Test suite for inspection data validation logic"""
-
-    def test_gear_id_positive_validation(self):
-        """Test gear_id must be positive integer"""
-        valid_ids = [1, 5, 100, 9999]
-        for gear_id in valid_ids:
-            assert gear_id > 0
-        
-        invalid_ids = [-1, 0, -100]
-        for gear_id in invalid_ids:
-            assert not (gear_id > 0)
-
-    def test_inspector_id_positive_validation(self):
-        """Test inspector_id must be positive integer when provided"""
-        valid_ids = [1, 10, 50]
-        for inspector_id in valid_ids:
-            assert inspector_id > 0
-        
-        invalid_ids = [-1, 0]
-        for inspector_id in invalid_ids:
-            assert not (inspector_id > 0)
-
-    def test_inspection_date_format(self):
-        """Test inspection date ISO format (YYYY-MM-DD)"""
-        test_date = date(2025, 11, 20)
-        formatted = test_date.isoformat()
-        
-        assert formatted == '2025-11-20'
-        assert len(formatted) == 10
-        assert formatted.count('-') == 2
-
-    def test_inspection_date_boundary_past(self):
-        """Test inspection date can be in the past"""
-        past_date = date(2020, 1, 1)
-        today = date.today()
-        
-        assert past_date < today
-
-    def test_inspection_date_boundary_future(self):
-        """Test inspection date can be in the future (scheduled inspections)"""
-        future_date = date.today() + timedelta(days=30)
-        today = date.today()
-        
-        assert future_date > today
-
-    def test_inspection_type_valid_values(self):
-        """Test inspection type contains valid values"""
-        valid_types = ['Annual', 'Monthly', 'Quarterly', 'Pre-Use', 'Post-Use', 'Emergency']
-        test_type = 'Annual'
-        
-        assert test_type in valid_types
-
-    def test_inspection_type_length(self):
-        """Test inspection type field length (max 100 characters)"""
-        valid_type = 'A' * 100
-        assert len(valid_type) <= 100
-        
-        invalid_type = 'A' * 101
-        assert len(invalid_type) > 100
-
-    def test_result_valid_values(self):
-        """Test result field contains valid status values"""
-        valid_results = ['Pass', 'Fail', 'Needs Repair', 'Retired']
-        test_result = 'Pass'
-        
-        assert test_result in valid_results
-
-    def test_result_length(self):
-        """Test result field length (max 50 characters)"""
-        valid_result = 'A' * 50
-        assert len(valid_result) <= 50
-        
-        invalid_result = 'A' * 51
-        assert len(invalid_result) > 50
-
-    def test_condition_notes_text_field(self):
-        """Test condition_notes can store long text"""
-        short_notes = "Good condition"
-        long_notes = "A" * 500  # Long text
-        
-        assert len(short_notes) > 0
-        assert len(long_notes) > 100
-        assert isinstance(short_notes, str)
-        assert isinstance(long_notes, str)
-
-    def test_condition_notes_special_characters(self):
-        """Test condition_notes can contain special characters and newlines"""
-        notes_with_special = "Condition: OK\nPressure: 100 PSI\nTemp: 72°F"
-        
-        assert '\n' in notes_with_special
-        assert '°' in notes_with_special
-        assert ':' in notes_with_special
-
-
-class TestInspectionListOperations:
-    """Test suite for list/collection operations on inspections"""
-
-    def test_empty_list_response(self):
-        """Test response when no inspections exist"""
-        inspections = []
-        
-        assert isinstance(inspections, list)
-        assert len(inspections) == 0
-
-    def test_single_inspection_list(self):
-        """Test list with one inspection"""
-        inspections = [{'id': 1, 'gear_id': 5, 'result': 'Pass'}]
-        
-        assert len(inspections) == 1
-        assert inspections[0]['result'] == 'Pass'
-
-    def test_multiple_inspections_list(self):
-        """Test list with multiple inspections"""
-        inspections = [
-            {'id': 1, 'gear_id': 5, 'result': 'Pass'},
-            {'id': 2, 'gear_id': 6, 'result': 'Fail'},
-            {'id': 3, 'gear_id': 7, 'result': 'Pass'}
-        ]
-        
-        assert len(inspections) == 3
-        assert all('id' in insp for insp in inspections)
-
-    def test_filtering_by_gear_id(self):
-        """Test filtering inspections by specific gear"""
-        inspections = [
-            {'id': 1, 'gear_id': 5, 'result': 'Pass'},
-            {'id': 2, 'gear_id': 6, 'result': 'Fail'},
-            {'id': 3, 'gear_id': 5, 'result': 'Pass'}
-        ]
-        
-        gear_5_inspections = [i for i in inspections if i['gear_id'] == 5]
-        
-        assert len(gear_5_inspections) == 2
-        assert all(i['gear_id'] == 5 for i in gear_5_inspections)
-
-    def test_filtering_by_result(self):
-        """Test filtering inspections by result status"""
-        inspections = [
-            {'id': 1, 'result': 'Pass'},
-            {'id': 2, 'result': 'Fail'},
-            {'id': 3, 'result': 'Pass'},
-            {'id': 4, 'result': 'Needs Repair'}
-        ]
-        
-        passed = [i for i in inspections if i['result'] == 'Pass']
-        failed = [i for i in inspections if i['result'] == 'Fail']
-        
-        assert len(passed) == 2
-        assert len(failed) == 1
-
-    def test_sorting_by_date(self):
-        """Test sorting inspections by inspection_date"""
-        inspections = [
-            {'id': 1, 'inspection_date': '2025-11-20'},
-            {'id': 2, 'inspection_date': '2025-10-15'},
-            {'id': 3, 'inspection_date': '2025-12-01'}
-        ]
-        
-        sorted_inspections = sorted(inspections, key=lambda x: x['inspection_date'])
-        
-        assert sorted_inspections[0]['inspection_date'] == '2025-10-15'
-        assert sorted_inspections[1]['inspection_date'] == '2025-11-20'
-        assert sorted_inspections[2]['inspection_date'] == '2025-12-01'
-
-    def test_sorting_with_null_dates(self):
-        """Test sorting inspections when some dates are None"""
-        inspections = [
-            {'id': 1, 'inspection_date': '2025-11-20'},
-            {'id': 2, 'inspection_date': None},
-            {'id': 3, 'inspection_date': '2025-10-15'}
-        ]
-        
-        sorted_inspections = sorted(inspections, key=lambda x: x['inspection_date'] or 'ZZZZ')
-        
-        assert sorted_inspections[0]['inspection_date'] == '2025-10-15'
-        assert sorted_inspections[1]['inspection_date'] == '2025-11-20'
-        assert sorted_inspections[2]['inspection_date'] is None
-
-
-class TestInspectionEdgeCases:
-    """Test suite for edge cases and boundary conditions"""
-
-    def test_multiple_inspections_same_gear(self):
-        """Test that same gear can have multiple inspections"""
-        inspections = [
-            {'id': 1, 'gear_id': 5, 'inspection_date': '2025-01-15'},
-            {'id': 2, 'gear_id': 5, 'inspection_date': '2025-06-15'},
-            {'id': 3, 'gear_id': 5, 'inspection_date': '2025-11-15'}
-        ]
-        
-        assert all(i['gear_id'] == 5 for i in inspections)
-        assert len(inspections) == 3
-
-    def test_same_inspector_multiple_gears(self):
-        """Test that one inspector can inspect multiple gears"""
-        inspections = [
-            {'id': 1, 'gear_id': 5, 'inspector_id': 10},
-            {'id': 2, 'gear_id': 6, 'inspector_id': 10},
-            {'id': 3, 'gear_id': 7, 'inspector_id': 10}
-        ]
-        
-        assert all(i['inspector_id'] == 10 for i in inspections)
-
-    def test_null_vs_empty_condition_notes(self):
-        """Test distinction between None and empty string in notes"""
-        insp_with_none = {'condition_notes': None}
-        insp_with_empty = {'condition_notes': ''}
-        
-        assert insp_with_none['condition_notes'] is None
-        assert insp_with_empty['condition_notes'] == ''
-        assert insp_with_none['condition_notes'] != insp_with_empty['condition_notes']
-
-    def test_date_parsing_validation(self):
-        """Test date string parsing logic"""
-        valid_dates = ['2025-11-20', '2020-01-01', '2030-12-31']
-        
-        for date_str in valid_dates:
-            parts = date_str.split('-')
-            assert len(parts) == 3
-            assert len(parts[0]) == 4  # Year
-            assert len(parts[1]) == 2  # Month
-            assert len(parts[2]) == 2  # Day
-
-    def test_inspection_result_statistics(self):
-        """Test calculation of pass/fail statistics"""
-        inspections = [
-            {'result': 'Pass'},
-            {'result': 'Pass'},
-            {'result': 'Fail'},
-            {'result': 'Pass'},
-            {'result': 'Needs Repair'}
-        ]
-        
-        total = len(inspections)
-        passed = len([i for i in inspections if i['result'] == 'Pass'])
-        failed = len([i for i in inspections if i['result'] == 'Fail'])
-        
-        assert total == 5
-        assert passed == 3
-        assert failed == 1
-        assert passed / total == 0.6  # 60% pass rate
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]['gear_id'] == 1
+        assert data[0]['inspection_date'] is None
+        assert data[0]['inspector_id'] is None
+        assert data[0]['inspection_type'] is None
+        assert data[0]['condition_notes'] is None
+        assert data[0]['result'] is None
 
 
 if __name__ == '__main__':
