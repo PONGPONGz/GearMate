@@ -98,8 +98,7 @@ cd ..
 
 ### Perform unit test
 ```bash
-pytest unitTest/unitTest -v
-pytest unitTest/unitTest -v --cov=. --cov-report=term-missing --cov-report=html:htmlcov
+pytest unitTest -v --cov=routers.firefighters --cov=routers.stations --cov=routers.inspections --cov-report=html --cov-branch
 ```
 
 ## 2. Auto-test
