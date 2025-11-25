@@ -9,7 +9,32 @@ Testing Strategy:
 - Focuses on realistic failure scenarios
 - Uses FastAPI TestClient for real HTTP requests
 
-Total Test Cases: 16 (1 base + 15 variations)
+Total Test Cases: 13 (1 base + 12 variations)
+
+Base Choice Coverage - Selected Characteristics:
+1. name (required field)
+   - Base: Valid name string 'John Doe'
+   - Variations: Empty string, Special characters, None
+
+2. ranks (optional field)
+   - Base: 'Captain'
+   - Variations: None
+
+3. email (optional field)
+   - Base: Valid email 'john.doe@firestation.com'
+   - Variations: None
+
+4. phone (optional field)
+   - Base: Valid phone '555-1234'
+   - Variations: None
+
+5. station_id (optional field, FK to station)
+   - Base: Valid positive integer (1)
+   - Variations: None, Non-existent FK, Negative
+
+6. department_id (optional field, FK to department)
+   - Base: Valid positive integer (1)
+   - Variations: None, Non-existent FK, Negative
 """
 import pytest
 import sys
