@@ -75,3 +75,5 @@ api/build/
 api/.pytest_cache/
 api/.coverage
 api/htmlcov/
+
+.coverage
