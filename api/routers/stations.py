@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 import models
@@ -13,6 +13,12 @@ router = APIRouter(
 
 @router.post("/", response_model=schemas.Station)
 def create_station(station: schemas.StationCreate, db: Session = Depends(get_db)):
+    # Validate foreign key reference
+    if station.department_id is not None:
+        department = db.query(models.Department).filter(models.Department.id == station.department_id).first()
+        if not department:
+            raise HTTPException(status_code=400, detail=f"Department with id {station.department_id} does not exist")
+    
     new_station = models.Station(**station.dict())
     db.add(new_station)
     db.commit()

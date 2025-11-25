@@ -23,6 +23,13 @@ class StationBase(BaseModel):
     location: Optional[str] = None
     department_id: Optional[int] = None
 
+    @field_validator('name')
+    @classmethod
+    def name_must_not_be_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('name cannot be empty')
+        return v
+
 
 class StationCreate(StationBase):
     pass
