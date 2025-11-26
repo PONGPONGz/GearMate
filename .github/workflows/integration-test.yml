@@ -114,9 +114,7 @@ jobs:
       - name: Run Flutter integration tests
         working-directory: ./client
         run: |
-          flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
-        env:
-          FLUTTER_TEST_DEVICE_ID: linux
+          flutter test -d linux --dart-define=DISABLE_NOTIFICATIONS=true integration_test
       
       - name: Stop backend API
         if: always()
