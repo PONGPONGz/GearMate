@@ -25,6 +25,7 @@ jobs:
         working-directory: ./api
         run: |
           python -m pip install --upgrade pip
+          pip install -r requirements.txt
           pip install -r requirements-dev.txt
       
       - name: Run backend unit tests with coverage
@@ -106,7 +107,8 @@ jobs:
       - name: Initialize database with schema and test data
         working-directory: ./api
         run: |
-          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword < gearmateDB.sql
+          # Skip DROP DATABASE command since MySQL service already created it
+          tail -n +2 gearmateDB.sql | mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword gearmate
           echo "Database initialized successfully"
       
       - name: Create .env file for API
