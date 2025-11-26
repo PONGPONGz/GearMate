@@ -1,0 +1,195 @@
+name: Flutter Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    name: Flutter Integration Tests
+    runs-on: ubuntu-24.04
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: gearmate
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        working-directory: ./api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -ptestpassword --silent; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Create seed data SQL file
+        working-directory: ./api
+        run: |
+          cat > seed_data.sql << 'EOF'
+          USE gearmate;
+          
+          -- Department
+          INSERT INTO department (id, department_name, location) VALUES 
+          (1, 'Sam Phran Fire Department', 'Bang Chang, Sam Phran District, Nakhon Pathom'),
+          (2, 'Nakhon Pathom Fire Department', 'Salaya District, Nakhon Pathom Province'),
+          (3, 'Bangkok Metropolitan Fire Department', 'Din Daeng District, Bangkok');
+          
+          -- Station
+          INSERT INTO station (id, name, location, department_id) VALUES
+          (1, 'Rai Khing Station', 'Rai Khing, Sam Phran District, Nakhon Pathom 73210', 1),
+          (2, 'Taling Chan Fire Station', 'Salaya, Phutthamonthon District, Nakhon Pathom 73170', 2);
+          
+          -- Firefighter
+          INSERT INTO firefighter (id, name, ranks, email, phone, station_id, department_id) VALUES
+          (1, 'Mark Johnson', 'Firefighter', 'Mark.johnson@gmail.com', '0800000000', 1, 1),
+          (2, 'Ton Danai', 'Technician', 'Ton.danai@gmail.com', '0899999999', 1, 1);
+          
+          -- Gear
+          INSERT INTO gear (id, station_id, gear_name, serial_number, photo_url, equipment_type, purchase_date, expiry_date) VALUES
+          (1, 1, 'Fire Helmet', 'FH-001', 'https://sentineles.b-cdn.net/wp-content/uploads/2024/07/06035412/pic-2.jpg', 'Helmet', '2023-01-10', '2028-01-10'),
+          (2, 1, 'Oxygen Tank', 'OT-002', 'https://5.imimg.com/data5/SELLER/Default/2020/12/MQ/RD/NT/37881237/breathing-apparatus-sets.jpeg', 'Tank', '2022-11-15', '2027-11-15'),
+          (3, 2, 'Fire Hose', 'FH-003', 'https://cusac-pfcusack-gob2b.b-cdn.net/imagecache/856acc4a-c70c-4c1d-a081-afd200b4676e/Fire-Hoses_1000x1000.jpg', 'Hose', '2023-06-01', '2026-06-01');
+          EOF
+          echo "Seed data SQL file created"
+      
+      - name: Create .env file for API
+        working-directory: ./api
+        run: |
+          cat > .env << EOF
+          HOST=0.0.0.0
+          PORT=8000
+          DEBUG=True
+          DB_USER=root
+          DB_PASSWORD=testpassword
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_NAME=gearmate
+          EOF
+      
+      - name: Start FastAPI backend
+        working-directory: ./api
+        run: |
+          # FastAPI will create tables automatically via models.Base.metadata.create_all()
+          python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
+          echo $! > api.pid
+          echo "Backend API started with PID $(cat api.pid)"
+      
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for API health check..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              echo "API is ready!"
+              curl http://localhost:8000/health
+              break
+            fi
+            echo "Waiting for API... ($i/30)"
+            sleep 2
+          done
+          # Verify API is actually responding
+          curl -f http://localhost:8000/health || (echo "API health check failed" && exit 1)
+      
+      - name: Load seed data into database
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword < api/seed_data.sql
+          echo "Seed data loaded successfully"
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.3'
+          channel: 'stable'
+          cache: true
+      
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      
+      - name: Enable KVM (for Android emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
+      - name: Install Flutter dependencies
+        working-directory: ./client
+        run: flutter pub get
+      
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
+      
+      - name: Update integration tests to use localhost
+        working-directory: ./client
+        run: |
+          # Create a backup and update API URLs for CI environment
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://10.0.2.2:8000|http://10.0.2.2:8000|g' {} \;
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://127.0.0.1:8000|http://10.0.2.2:8000|g' {} \;
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://localhost:8000|http://10.0.2.2:8000|g' {} \;
+          echo "Updated API URLs to use 10.0.2.2 for Android emulator"
+      
+      - name: Run Flutter integration tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          working-directory: ./client
+          script: flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
+      
+      - name: Stop backend API
+        if: always()
+        working-directory: ./api
+        run: |
+          if [ -f api.pid ]; then
+            kill $(cat api.pid) || true
+            rm api.pid
+          fi
+      
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            client/test-results/
+            client/screenshots/
+          retention-days: 7
