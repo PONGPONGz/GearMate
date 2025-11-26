@@ -96,6 +96,18 @@ jobs:
           channel: 'stable'
           cache: true
       
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Enable KVM (for Android emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      
       - name: Flutter doctor
         run: flutter doctor -v
       
@@ -103,18 +115,40 @@ jobs:
         working-directory: ./client
         run: flutter pub get
       
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
+      
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
+      
+      - name: Set up Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: default
+          arch: x86_64
+          profile: Nexus 6
+          script: echo "Emulator started"
+      
       - name: Update integration tests to use localhost
         working-directory: ./client
         run: |
           # Create a backup and update API URLs for CI environment
-          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://10.0.2.2:8000|http://localhost:8000|g' {} \;
-          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://127.0.0.1:8000|http://localhost:8000|g' {} \;
-          echo "Updated API URLs to use localhost for CI"
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://10.0.2.2:8000|http://10.0.2.2:8000|g' {} \;
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://127.0.0.1:8000|http://10.0.2.2:8000|g' {} \;
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://localhost:8000|http://10.0.2.2:8000|g' {} \;
+          echo "Updated API URLs to use 10.0.2.2 for Android emulator"
       
       - name: Run Flutter integration tests
-        working-directory: ./client
-        run: |
-          flutter test -d linux --dart-define=DISABLE_NOTIFICATIONS=true integration_test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: default
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            cd client
+            flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
       
       - name: Stop backend API
         if: always()
