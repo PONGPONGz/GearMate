@@ -52,6 +52,11 @@ jobs:
             sleep 2
           done
       
+      - name: Initialize database with seed data
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword < api/gearmateDB.sql
+          echo "Database initialized with seed data"
+      
       - name: Create .env file for API
         working-directory: ./api
         run: |
