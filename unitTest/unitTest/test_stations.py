@@ -9,8 +9,9 @@ Testing Strategy:
 - Focuses on realistic failure scenarios
 - Uses FastAPI TestClient for real HTTP requests
 
-Total Test Cases: 14 (1 base + 9 variations + 4 GET endpoint tests)
-
+Total Test Cases: 14
+- 10 POST tests (1 base + 9 variations)
+- 4 GET tests (database state partitions)
 Base Choice Coverage - Selected Characteristics:
 1. name (required field)
    - Base: Valid name string 'Fire Station 1'
@@ -23,6 +24,24 @@ Base Choice Coverage - Selected Characteristics:
 3. department_id (optional field, FK to department)
    - Base: Valid positive integer (1)
    - Variations: None, Non-existent FK, Negative
+
+Base Choice Coverage - Selected Characteristics (GET /stations):
+
+1. Empty Database
+   - No stations exist
+   - Expect empty list
+
+2. Single Station
+   - One station exists
+   - Expect list containing the created station
+
+3. Multiple Stations
+   - Several stations exist
+   - Expect list containing all stations with valid IDs
+
+4. Stations With Null Optional Fields
+   - Station exists with location and department_id set to None
+   - Expect null values returned correctly
 """
 import pytest
 import models

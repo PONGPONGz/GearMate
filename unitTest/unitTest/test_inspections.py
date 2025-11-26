@@ -9,9 +9,11 @@ Testing Strategy:
 - Focuses on realistic failure scenarios
 - Uses FastAPI TestClient for real HTTP requests
 
-Total Test Cases: 17 (1 base + 16 variations)
+Total Test Cases: 21
+- 17 POST tests (1 base + 16 variations)
+- 4 GET tests (database state partitions)
 
-Base Choice Coverage - Selected Characteristics:
+Base Choice Coverage - Selected Characteristics (POST /inspections)::
 1. gear_id (required field)
    - Base: Valid positive integer (1)
    - Variations: None, Non-existent FK, Negative
@@ -35,6 +37,24 @@ Base Choice Coverage - Selected Characteristics:
 6. result (optional field)
    - Base: 'Pass'
    - Variations: None, Various statuses (Pass, Fail, Needs Repair, Retired)
+
+Base Choice Coverage - Selected Characteristics (GET /inspections):
+
+1. Empty Database
+   - No inspections exist
+   - Expect empty list
+
+2. Single Inspection
+   - One inspection exists (created via POST)
+   - Expect list with one valid record
+
+3. Multiple Inspections
+   - Several inspections exist
+   - Expect list containing 3 items with proper IDs and values
+
+4. Inspections With Null Optional Fields
+   - An inspection exists with inspection_date, inspector_id, inspection_type, condition_notes, and result all set to None
+   - Response should correctly return null values for those fields
 """
 import pytest
 import models
