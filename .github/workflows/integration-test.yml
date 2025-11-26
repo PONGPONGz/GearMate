@@ -154,12 +154,6 @@ jobs:
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
       
-      - name: Pre-build Flutter app
-        working-directory: ./client
-        run: |
-          flutter build apk --debug --target=integration_test/add_maintenance_schedule_test.dart
-          echo "Pre-build completed, APK cached for faster test runs"
-      
       - name: Update integration tests to use localhost
         working-directory: ./client
         run: |
