@@ -4,8 +4,6 @@ on:
   pull_request:
     branches:
       - main
-      - develop
-      - Automated-test-and-Unit-test
   workflow_dispatch:
 
 jobs:
