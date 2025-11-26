@@ -146,9 +146,8 @@ jobs:
           target: default
           arch: x86_64
           profile: Nexus 6
-          script: |
-            cd client
-            flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
+          working-directory: ./client
+          script: flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
       
       - name: Stop backend API
         if: always()
