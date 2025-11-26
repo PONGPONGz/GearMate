@@ -52,10 +52,35 @@ jobs:
             sleep 2
           done
       
-      - name: Initialize database with seed data
+      - name: Create seed data SQL file
+        working-directory: ./api
         run: |
-          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword < api/gearmateDB.sql
-          echo "Database initialized with seed data"
+          cat > seed_data.sql << 'EOF'
+          USE gearmate;
+          
+          -- Department
+          INSERT INTO department (id, department_name, location) VALUES 
+          (1, 'Sam Phran Fire Department', 'Bang Chang, Sam Phran District, Nakhon Pathom'),
+          (2, 'Nakhon Pathom Fire Department', 'Salaya District, Nakhon Pathom Province'),
+          (3, 'Bangkok Metropolitan Fire Department', 'Din Daeng District, Bangkok');
+          
+          -- Station
+          INSERT INTO station (id, name, location, department_id) VALUES
+          (1, 'Rai Khing Station', 'Rai Khing, Sam Phran District, Nakhon Pathom 73210', 1),
+          (2, 'Taling Chan Fire Station', 'Salaya, Phutthamonthon District, Nakhon Pathom 73170', 2);
+          
+          -- Firefighter
+          INSERT INTO firefighter (id, name, ranks, email, phone, station_id, department_id) VALUES
+          (1, 'Mark Johnson', 'Firefighter', 'Mark.johnson@gmail.com', '0800000000', 1, 1),
+          (2, 'Ton Danai', 'Technician', 'Ton.danai@gmail.com', '0899999999', 1, 1);
+          
+          -- Gear
+          INSERT INTO gear (id, station_id, gear_name, serial_number, photo_url, equipment_type, purchase_date, expiry_date, status) VALUES
+          (1, 1, 'Fire Helmet', 'FH-001', 'https://sentineles.b-cdn.net/wp-content/uploads/2024/07/06035412/pic-2.jpg', 'Helmet', '2023-01-10', '2028-01-10', 'Available'),
+          (2, 1, 'Oxygen Tank', 'OT-002', 'https://5.imimg.com/data5/SELLER/Default/2020/12/MQ/RD/NT/37881237/breathing-apparatus-sets.jpeg', 'Tank', '2022-11-15', '2027-11-15', 'Available'),
+          (3, 2, 'Fire Hose', 'FH-003', 'https://cusac-pfcusack-gob2b.b-cdn.net/imagecache/856acc4a-c70c-4c1d-a081-afd200b4676e/Fire-Hoses_1000x1000.jpg', 'Hose', '2023-06-01', '2026-06-01', 'Available');
+          EOF
+          echo "Seed data SQL file created"
       
       - name: Create .env file for API
         working-directory: ./api
@@ -93,6 +118,11 @@ jobs:
           done
           # Verify API is actually responding
           curl -f http://localhost:8000/health || (echo "API health check failed" && exit 1)
+      
+      - name: Load seed data into database
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword < api/seed_data.sql
+          echo "Seed data loaded successfully"
       
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
