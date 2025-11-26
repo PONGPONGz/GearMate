@@ -261,7 +261,7 @@ jobs:
           comment += "- ✅ All backend unit tests passed\n"
           comment += "- ✅ All Flutter integration tests passed\n"
           comment += "\n---\n"
-          comment += "*Coverage report generated on: ${{ github.event.pull_request.head.sha[:7] }}*"
+          comment += f"*Coverage report generated for commit: ${{ github.event.pull_request.head.sha }}*"
           
           # Write to file for GitHub comment
           with open('coverage_comment.txt', 'w') as f:
