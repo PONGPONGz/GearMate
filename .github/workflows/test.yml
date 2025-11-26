@@ -11,6 +11,20 @@ jobs:
     name: Backend Unit Tests & Coverage
     runs-on: ubuntu-latest
     
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: gearmate
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,11 +42,20 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
       
-      - name: Remove any .env file to ensure tests use SQLite
+      - name: Create .env file for backend tests
         working-directory: ./api
         run: |
-          rm -f .env
-          echo "Ensured no .env file exists for unit tests"
+          cat > .env << EOF
+          HOST=0.0.0.0
+          PORT=8000
+          DEBUG=True
+          DB_USER=root
+          DB_PASSWORD=testpassword
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_NAME=gearmate
+          EOF
+          echo ".env file created for backend tests"
       
       - name: Run backend unit tests with coverage
         working-directory: .
@@ -47,11 +70,6 @@ jobs:
             --cov-branch
         env:
           PYTHONPATH: ${{ github.workspace }}/api
-          DB_USER: dummy
-          DB_PASSWORD: dummy
-          DB_HOST: localhost
-          DB_PORT: 3306
-          DB_NAME: dummy
       
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
