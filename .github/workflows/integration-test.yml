@@ -55,10 +55,10 @@ jobs:
       - name: Initialize database with schema and test data
         working-directory: ./api
         run: |
-          # Drop and recreate database completely
-          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword -e "DROP DATABASE IF EXISTS gearmate; CREATE DATABASE gearmate;"
-          # Run the full SQL file (it will try to drop/create again but that's ok)
-          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword < gearmateDB.sql
+          # Ensure clean state - drop database if exists
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword -e "DROP DATABASE IF EXISTS gearmate;"
+          # Skip the first line (DROP DATABASE) and run rest of SQL file
+          tail -n +2 gearmateDB.sql | mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword
           echo "Database initialized successfully"
       
       - name: Create .env file for API
