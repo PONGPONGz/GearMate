@@ -52,15 +52,6 @@ jobs:
             sleep 2
           done
       
-      - name: Initialize database with schema and test data
-        working-directory: ./api
-        run: |
-          # Ensure clean state - drop database if exists
-          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword -e "DROP DATABASE IF EXISTS gearmate;"
-          # Skip the first line (DROP DATABASE) and run rest of SQL file
-          tail -n +2 gearmateDB.sql | mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword
-          echo "Database initialized successfully"
-      
       - name: Create .env file for API
         working-directory: ./api
         run: |
@@ -78,6 +69,7 @@ jobs:
       - name: Start FastAPI backend
         working-directory: ./api
         run: |
+          # FastAPI will create tables automatically via models.Base.metadata.create_all()
           python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
           echo $! > api.pid
           echo "Backend API started with PID $(cat api.pid)"
