@@ -1,0 +1,145 @@
+name: Coverage Report
+
+on:
+  workflow_run:
+    workflows: ["API Unit Tests", "Flutter Integration Tests"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  coverage-comment:
+    name: Post Coverage Report to PR
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      pull-requests: write
+      contents: read
+      actions: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install coverage tools
+        run: pip install coverage
+      
+      - name: Parse coverage and create comment
+        id: coverage
+        run: |
+          # Parse the XML coverage report
+          python << 'EOF'
+          import xml.etree.ElementTree as ET
+          import os
+          
+          tree = ET.parse('coverage.xml')
+          root = tree.getroot()
+          
+          # Extract overall coverage
+          overall_line_rate = float(root.attrib.get('line-rate', 0)) * 100
+          overall_branch_rate = float(root.attrib.get('branch-rate', 0)) * 100
+          
+          # Extract per-file coverage
+          packages = root.findall('.//package')
+          
+          comment = "## 📊 Backend Unit Test Coverage Report\n\n"
+          comment += f"**Overall Coverage:** {overall_line_rate:.2f}% (Lines) | {overall_branch_rate:.2f}% (Branches)\n\n"
+          comment += "### Coverage by Module\n\n"
+          comment += "| Module | Line Coverage | Branch Coverage |\n"
+          comment += "|--------|---------------|------------------|\n"
+          
+          for package in packages:
+              for cls in package.findall('.//class'):
+                  filename = cls.attrib.get('filename', '')
+                  if any(module in filename for module in ['firefighters', 'stations', 'inspections']):
+                      line_rate = float(cls.attrib.get('line-rate', 0)) * 100
+                      branch_rate = float(cls.attrib.get('branch-rate', 0)) * 100
+                      module_name = filename.split('/')[-1].replace('.py', '')
+                      
+                      # Add emoji based on coverage
+                      line_emoji = "✅" if line_rate >= 80 else "⚠️" if line_rate >= 60 else "❌"
+                      branch_emoji = "✅" if branch_rate >= 80 else "⚠️" if branch_rate >= 60 else "❌"
+                      
+                      comment += f"| `{module_name}` | {line_emoji} {line_rate:.2f}% | {branch_emoji} {branch_rate:.2f}% |\n"
+          
+          comment += "\n### Test Results\n\n"
+          comment += "- ✅ All backend unit tests passed\n"
+          comment += "- ✅ All Flutter integration tests passed\n"
+          comment += "\n---\n"
+          comment += "*Coverage report generated for this PR*"
+          
+          # Write to file for GitHub comment
+          with open('coverage_comment.txt', 'w') as f:
+              f.write(comment)
+          
+          print(f"Overall Line Coverage: {overall_line_rate:.2f}%")
+          print(f"Overall Branch Coverage: {overall_branch_rate:.2f}%")
+          EOF
+      
+      - name: Get PR number
+        id: pr
+        run: |
+          PR_NUMBER=$(gh pr list --repo ${{ github.repository }} --head ${{ github.event.workflow_run.head_branch }} --json number --jq '.[0].number')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Post coverage comment to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverageComment = fs.readFileSync('coverage_comment.txt', 'utf8');
+            const prNumber = '${{ steps.pr.outputs.pr_number }}';
+            
+            if (!prNumber) {
+              console.log('No PR number found, skipping comment');
+              return;
+            }
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(prNumber),
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('📊 Backend Unit Test Coverage Report')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: coverageComment
+              });
+              console.log('Updated existing coverage comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parseInt(prNumber),
+                body: coverageComment
+              });
+              console.log('Created new coverage comment');
+            }

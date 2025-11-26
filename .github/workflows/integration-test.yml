@@ -1,0 +1,146 @@
+name: Flutter Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    name: Flutter Integration Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: gearmate
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        working-directory: ./api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -ptestpassword --silent; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Initialize database with schema and test data
+        working-directory: ./api
+        run: |
+          # Drop and recreate database to avoid conflicts
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword -e "DROP DATABASE IF EXISTS gearmate; CREATE DATABASE gearmate;"
+          # Run the SQL file but skip the first two lines (DROP and CREATE DATABASE)
+          tail -n +3 gearmateDB.sql | mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword gearmate
+          echo "Database initialized successfully"
+      
+      - name: Create .env file for API
+        working-directory: ./api
+        run: |
+          cat > .env << EOF
+          HOST=0.0.0.0
+          PORT=8000
+          DEBUG=True
+          DB_USER=root
+          DB_PASSWORD=testpassword
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_NAME=gearmate
+          EOF
+      
+      - name: Start FastAPI backend
+        working-directory: ./api
+        run: |
+          python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
+          echo $! > api.pid
+          echo "Backend API started with PID $(cat api.pid)"
+      
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for API health check..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              echo "API is ready!"
+              curl http://localhost:8000/health
+              break
+            fi
+            echo "Waiting for API... ($i/30)"
+            sleep 2
+          done
+          # Verify API is actually responding
+          curl -f http://localhost:8000/health || (echo "API health check failed" && exit 1)
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+          cache: true
+      
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
+      - name: Install Flutter dependencies
+        working-directory: ./client
+        run: flutter pub get
+      
+      - name: Update integration tests to use localhost
+        working-directory: ./client
+        run: |
+          # Create a backup and update API URLs for CI environment
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://10.0.2.2:8000|http://localhost:8000|g' {} \;
+          find integration_test -type f -name "*.dart" -exec sed -i.bak 's|http://127.0.0.1:8000|http://localhost:8000|g' {} \;
+          echo "Updated API URLs to use localhost for CI"
+      
+      - name: Run Flutter integration tests
+        working-directory: ./client
+        run: |
+          flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
+        env:
+          FLUTTER_TEST_DEVICE_ID: linux
+      
+      - name: Stop backend API
+        if: always()
+        working-directory: ./api
+        run: |
+          if [ -f api.pid ]; then
+            kill $(cat api.pid) || true
+            rm api.pid
+          fi
+      
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            client/test-results/
+            client/screenshots/
+          retention-days: 7
