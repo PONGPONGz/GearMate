@@ -9,7 +9,7 @@ on:
 jobs:
   integration-tests:
     name: Flutter Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     services:
       mysql:
@@ -101,6 +101,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
       
       - name: Enable KVM (for Android emulator)
         run: |
@@ -118,17 +119,33 @@ jobs:
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
       
-      - name: Accept Android licenses
-        run: yes | flutter doctor --android-licenses || true
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-29
       
-      - name: Set up Android emulator
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          target: default
+          target: google_apis
           arch: x86_64
-          profile: Nexus 6
-          script: echo "Emulator started"
+          profile: pixel_2
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching."
+      
+      - name: Pre-build Flutter app
+        working-directory: ./client
+        run: |
+          flutter build apk --debug --target=integration_test/add_maintenance_schedule_test.dart
+          echo "Pre-build completed, APK cached for faster test runs"
       
       - name: Update integration tests to use localhost
         working-directory: ./client
@@ -143,9 +160,11 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
-          target: default
+          target: google_apis
           arch: x86_64
-          profile: Nexus 6
+          profile: pixel_2
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
           working-directory: ./client
           script: flutter test --dart-define=DISABLE_NOTIFICATIONS=true integration_test
       
