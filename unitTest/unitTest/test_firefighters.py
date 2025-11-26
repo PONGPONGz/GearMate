@@ -9,9 +9,11 @@ Testing Strategy:
 - Focuses on realistic failure scenarios
 - Uses FastAPI TestClient for real HTTP requests
 
-Total Test Cases: 13 (1 base + 12 variations)
+Total Test Cases: 17  
+- 13 POST tests (1 base + 12 variations)  
+- 4 GET tests (database state partitions)
 
-Base Choice Coverage - Selected Characteristics:
+Base Choice Coverage - Selected Characteristics (POST /firefighters):
 1. name (required field)
    - Base: Valid name string 'John Doe'
    - Variations: Empty string, Special characters, None
@@ -35,6 +37,24 @@ Base Choice Coverage - Selected Characteristics:
 6. department_id (optional field, FK to department)
    - Base: Valid positive integer (1)
    - Variations: None, Non-existent FK, Negative
+
+Base Choice Coverage - Selected Characteristics (GET /firefighters):
+
+1. Empty Database
+   - No firefighters exist
+   - Expect an empty list
+
+2. Single Firefighter
+   - Exactly one firefighter exists (created via POST)
+   - Expect list with one record
+
+3. Multiple Firefighters
+   - Several firefighters exist (preloaded + added during test)
+   - Expect list length ≥ 2 and valid structures
+
+4. Firefighter With Null Optional Fields
+   - A firefighter exists with ranks, email, phone, station_id, department_id all set to None
+   - Expect returned fields to match null values correctly
 """
 import pytest
 import models
@@ -46,9 +66,9 @@ class TestFirefighterPostEndpoint:
     def test_base_all_valid_values(self, client, test_db_with_dependencies):
         """Base test: Valid firefighter with all fields populated with typical values"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 1
@@ -65,7 +85,7 @@ class TestFirefighterPostEndpoint:
         payload = {
             'name': '',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 1
@@ -79,9 +99,9 @@ class TestFirefighterPostEndpoint:
     def test_name_with_special_characters(self, client, test_db_with_dependencies):
         """Variation: name contains special characters (apostrophe, hyphen)"""
         payload = {
-            'name': "O'Brien-Smith",
+            'name': "O'Chaiyong-Smith",
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 1
@@ -91,14 +111,14 @@ class TestFirefighterPostEndpoint:
         
         assert response.status_code == 200
         data = response.json()
-        assert data['name'] == "O'Brien-Smith"
+        assert data['name'] == "O'Chaiyong-Smith"
 
     def test_name_null(self, client, test_db_with_dependencies):
         """Variation: name is None (required field)"""
         payload = {
             'name': None,
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 1
@@ -113,9 +133,9 @@ class TestFirefighterPostEndpoint:
     def test_ranks_none(self, client, test_db_with_dependencies):
         """Variation: ranks is None (optional field)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': None,
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 1
@@ -131,7 +151,7 @@ class TestFirefighterPostEndpoint:
     def test_email_none(self, client, test_db_with_dependencies):
         """Variation: email is None (optional field)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
             'email': None,
             'phone': '555-1234',
@@ -149,9 +169,9 @@ class TestFirefighterPostEndpoint:
     def test_phone_none(self, client, test_db_with_dependencies):
         """Variation: phone is None (optional field)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chaiyong@firestation.com',
             'phone': None,
             'station_id': 1,
             'department_id': 1
@@ -167,9 +187,9 @@ class TestFirefighterPostEndpoint:
     def test_station_id_none(self, client, test_db_with_dependencies):
         """Variation: station_id is None (optional field)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': None,
             'department_id': 1
@@ -184,9 +204,9 @@ class TestFirefighterPostEndpoint:
     def test_station_id_non_existent(self, client, test_db_with_dependencies):
         """Variation: station_id references non-existent station (FK violation)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 9999,
             'department_id': 1
@@ -200,9 +220,9 @@ class TestFirefighterPostEndpoint:
     def test_station_id_negative(self, client, test_db_with_dependencies):
         """Variation: station_id is negative (invalid value)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': -1,
             'department_id': 1
@@ -217,9 +237,9 @@ class TestFirefighterPostEndpoint:
     def test_department_id_none(self, client, test_db_with_dependencies):
         """Variation: department_id is None (optional field)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': None
@@ -234,9 +254,9 @@ class TestFirefighterPostEndpoint:
     def test_department_id_non_existent(self, client, test_db_with_dependencies):
         """Variation: department_id references non-existent department (FK violation)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 9999
@@ -250,9 +270,9 @@ class TestFirefighterPostEndpoint:
     def test_department_id_negative(self, client, test_db_with_dependencies):
         """Variation: department_id is negative (invalid value)"""
         payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john.doe@firestation.com',
+            'email': 'Chai.yong@firestation.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': -1
@@ -279,9 +299,9 @@ class TestFirefighterGetEndpoint:
         """Database state: Single firefighter exists"""
         # Create a firefighter
         create_payload = {
-            'name': 'John Doe',
+            'name': 'AJ Chaiyong',
             'ranks': 'Captain',
-            'email': 'john@fire.com',
+            'email': 'Chai.yong@fire.com',
             'phone': '555-1234',
             'station_id': 1,
             'department_id': 1
@@ -300,9 +320,9 @@ class TestFirefighterGetEndpoint:
     def test_get_multiple_firefighters(self, client, test_db_with_dependencies):
         """Database state: Multiple firefighters exist"""
         firefighters = [
-            {'name': 'John Doe', 'ranks': 'Captain', 'station_id': 1, 'department_id': 1},
-            {'name': 'Jane Smith', 'ranks': 'Lieutenant', 'station_id': 1, 'department_id': 1},
-            {'name': 'Bob Johnson', 'ranks': 'Firefighter', 'station_id': 1, 'department_id': 1}
+            {'name': 'AJ Chaiyong', 'ranks': 'Captain', 'station_id': 1, 'department_id': 1},
+            {'name': 'AJ Chaiyongy', 'ranks': 'Lieutenant', 'station_id': 1, 'department_id': 1},
+            {'name': 'AJ Chaiyongiz', 'ranks': 'Firefighter', 'station_id': 1, 'department_id': 1}
         ]
         
         for ff in firefighters:
