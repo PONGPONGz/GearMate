@@ -28,6 +28,12 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
       
+      - name: Remove any .env file to ensure tests use SQLite
+        working-directory: ./api
+        run: |
+          rm -f .env
+          echo "Ensured no .env file exists for unit tests"
+      
       - name: Run backend unit tests with coverage
         working-directory: .
         run: |
@@ -107,8 +113,10 @@ jobs:
       - name: Initialize database with schema and test data
         working-directory: ./api
         run: |
-          # Skip DROP DATABASE command since MySQL service already created it
-          tail -n +2 gearmateDB.sql | mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword gearmate
+          # Drop and recreate database to avoid conflicts
+          mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword -e "DROP DATABASE IF EXISTS gearmate; CREATE DATABASE gearmate;"
+          # Run the SQL file but skip the first two lines (DROP and CREATE DATABASE)
+          tail -n +3 gearmateDB.sql | mysql -h 127.0.0.1 -P 3306 -u root -ptestpassword gearmate
           echo "Database initialized successfully"
       
       - name: Create .env file for API
