@@ -47,6 +47,11 @@ jobs:
             --cov-branch
         env:
           PYTHONPATH: ${{ github.workspace }}/api
+          DB_USER: dummy
+          DB_PASSWORD: dummy
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_NAME: dummy
       
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
