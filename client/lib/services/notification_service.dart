@@ -18,6 +18,16 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
 
+    // Allow tests to disable all notification setup to avoid permission dialogs and delay.
+    const bool disableForTests = bool.fromEnvironment('DISABLE_NOTIFICATIONS', defaultValue: false);
+    if (disableForTests) {
+      _initialized = true; // mark initialized so callers proceed without plugin setup
+      if (kDebugMode) {
+        debugPrint('Notifications disabled via DISABLE_NOTIFICATIONS dart-define');
+      }
+      return; // Skip all further initialization & permission requests
+    }
+
     // Fixed to Bangkok time (no native plugin required)
     tzdata.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Bangkok'));

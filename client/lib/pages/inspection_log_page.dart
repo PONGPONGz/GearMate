@@ -206,9 +206,13 @@ class _InspectionLogPageState extends State<InspectionLogPage> {
                       onChanged: (v) {
                         setState(() {
                           _selectedGearName = v;
-                          _selectedGearId = _gears.firstWhere(
-                            (g) => g['gear_name'] == v,
-                          )['id'] as int;
+                          if (v != null) {
+                            _selectedGearId = _gears.firstWhere(
+                              (g) => g['gear_name'] == v,
+                            )['id'] as int;
+                          } else {
+                            _selectedGearId = null;
+                          }
                         });
                       },
                       decoration: const InputDecoration(hintText: 'Select gear'),
@@ -249,9 +253,13 @@ class _InspectionLogPageState extends State<InspectionLogPage> {
                       onChanged: (v) {
                         setState(() {
                           _selectedInspectorName = v;
-                          _selectedInspectorId = _inspectors.firstWhere(
-                            (p) => p['name'] == v,
-                          )['id'] as int;
+                          if (v != null) {
+                            _selectedInspectorId = _inspectors.firstWhere(
+                              (p) => p['name'] == v,
+                            )['id'] as int;
+                          } else {
+                            _selectedInspectorId = null;
+                          }
                         });
                       },
                       decoration: const InputDecoration(

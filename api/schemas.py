@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import date, time
 from typing import Optional, List
 
@@ -23,6 +23,13 @@ class StationBase(BaseModel):
     location: Optional[str] = None
     department_id: Optional[int] = None
 
+    @field_validator('name')
+    @classmethod
+    def name_must_not_be_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('name cannot be empty')
+        return v
+
 
 class StationCreate(StationBase):
     pass
@@ -42,6 +49,20 @@ class FirefighterBase(BaseModel):
     phone: Optional[str] = None
     station_id: Optional[int] = None
     department_id: Optional[int] = None
+
+    @field_validator('name')
+    @classmethod
+    def name_must_not_be_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('name cannot be empty')
+        return v
+
+    @field_validator('station_id', 'department_id')
+    @classmethod
+    def ids_must_be_positive(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v < 0:
+            raise ValueError('ID must be a positive integer')
+        return v
 
 
 class FirefighterCreate(FirefighterBase):
